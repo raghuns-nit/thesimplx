@@ -4,37 +4,31 @@
 
 async function ensureFileExists(filename, parentId, defaultContent = "[]") {
     let file = await findFile(filename, parentId);
+    
     if (!file) {
-        const fileMetadata = { name: filename, parents: [parentId], mimeType: 'application/json' };
-        const media = { mimeType: 'application/json', body: defaultContent };
-        
         try {
-             // Basic upload for small JSON files using gapi.client.request
-            const boundary = '-------314159265358979323846';
-            const delimiter = "\r\n--" + boundary + "\r\n";
-            const close_delim = "\r\n--" + boundary + "--";
-            
-            const multipartRequestBody =
-                delimiter +
-                'Content-Type: application/json\r\n\r\n' +
-                JSON.stringify(fileMetadata) +
-                delimiter +
-                'Content-Type: application/json\r\n\r\n' +
-                defaultContent +
-                close_delim;
-
-            const request = gapi.client.request({
-                'path': '/upload/drive/v3/files',
-                'method': 'POST',
-                'params': {'uploadType': 'multipart'},
-                'headers': {
-                  'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+            // Step 1: Create the empty file metadata first (Highly Reliable)
+            const createRes = await gapi.client.drive.files.create({
+                resource: { 
+                    name: filename, 
+                    parents: [parentId], 
+                    mimeType: 'application/json' 
                 },
-                'body': multipartRequestBody
+                fields: 'id'
             });
             
-            let response = await request;
-            return response.result.id;
+            const fileId = createRes.result.id;
+
+            // Step 2: Upload the default content into the newly created file via simple media upload
+            await gapi.client.request({
+                path: `/upload/drive/v3/files/${fileId}`,
+                method: 'PATCH',
+                params: { uploadType: 'media' },
+                body: defaultContent,
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            return fileId;
         } catch (e) {
             console.error("Error creating file " + filename, e);
             throw e;
