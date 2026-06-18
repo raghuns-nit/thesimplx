@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - theSimpLx</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    
+    <header>
+        <div class="header-main">
+            <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
+                <a href="index.html" class="logo-container">
+                    <span class="logo-icon">🏗️</span> <span class="company-name">theSimpLx</span>
+                </a>
+                
+                <nav class="nav-links">
+                    <a href="index.html">Categories</a>
+                    <a href="category.html">All Products</a>
+                    <a href="estimate.html">Tile Estimator</a>
+                    <a href="contact.html">Contact Us</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+
+    <main class="container section" id="productContainer">
+        <a href="javascript:history.back()" class="btn btn-outline mb-4">&larr; Back to Catalog</a>
+        
+        <div class="grid grid-cols-2">
+            <!-- Image Gallery -->
+            <div>
+                <div style="background: var(--bg-white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
+                    <img id="mainImg" src="" style="width: 100%; height: auto; max-height: 500px; object-fit: contain;">
+                </div>
+                <div id="thumbnails" style="display: flex; gap: 1rem; overflow-x: auto;">
+                    <!-- Thumbs populated by js -->
+                </div>
+            </div>
+            
+            <!-- Details -->
+            <div style="background: var(--bg-white); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem;">
+                <span class="badge badge-warning mb-2" id="p_brand">Brand</span>
+                <h1 id="p_name" class="mb-2">Product Name</h1>
+                <p class="text-muted mb-4">SKU: <span id="p_sku"></span></p>
+                
+                <div style="font-size: 2rem; font-weight: 700; color: var(--primary); margin-bottom: 2rem;">
+                    <span id="p_price"></span> <span id="p_unit" style="font-size: 1rem; color: var(--text-muted); font-weight: 400;"></span>
+                </div>
+                
+                <h3 class="mb-4 border-bottom pb-2">Specifications</h3>
+                <div id="p_specs" class="mb-8">
+                    <!-- Specs populated by js -->
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-whatsapp" style="flex: 1; padding: 1rem;" onclick="requestQuote(window.currentProduct)">💬 Request Quote</button>
+                    <button class="btn btn-primary" style="flex: 1; padding: 1rem;" onclick="payAdvance(window.currentProduct.price)">💳 Pay Advance</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <h4 class="company-name">theSimpLx</h4>
+                    <p>Premium construction materials and services tailored for your building needs.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="index.html">Categories</a></li>
+                        <li><a href="estimate.html">Tile Estimator</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Admin</h4>
+                    <ul>
+                        <li><a href="admin-login.html">Admin Portal</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 <span class="company-name">theSimpLx</span>. All rights reserved. Built for GitHub Pages.
+            </div>
+        </div>
+    </footer>
+    <button class="floating-wa" onclick="openGeneralWhatsApp()">💬</button>
+    
+    <!-- Google APIs -->
+    <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script src="js/drive.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/whatsapp.js"></script>
+    <script src="js/upi.js"></script>
+    <script src="js/app.js"></script><script src="js/filters.js"></script>
+
+</body>
+</html>

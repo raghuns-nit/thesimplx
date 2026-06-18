@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - theSimpLx</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-layout">
+    
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="sidebar">
+        <div class="admin-brand">
+            <span>🏗️</span> theSimpLx CMS
+        </div>
+        <nav class="admin-nav">
+            <a class="admin-nav-item active" onclick="switchTab('dashboard')">Dashboard</a>
+            <a class="admin-nav-item" onclick="switchTab('categories')">Categories</a>
+            <a class="admin-nav-item" onclick="switchTab('products')">Products</a>
+            <a class="admin-nav-item" onclick="switchTab('brands')">Brands</a>
+            <a class="admin-nav-item" onclick="switchTab('enquiries')">Enquiries</a>
+            <a class="admin-nav-item" onclick="switchTab('settings')">Settings</a>
+            <a class="admin-nav-item" onclick="switchTab('activity')">Activity Logs</a>
+        </nav>
+        <div class="admin-user" id="adminUserEmail">
+            Loading...
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+        <header class="admin-header">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="btn btn-outline" id="menuBtn" style="padding: 0.25rem 0.5rem; display: none;">☰</button>
+                <h2 id="pageTitle" style="margin: 0; font-size: 1.25rem;">Dashboard</h2>
+            </div>
+            <div>
+                <a href="index.html" target="_blank" class="btn btn-outline" style="margin-right: 0.5rem;">View Site</a>
+                <button class="btn btn-danger" onclick="handleLogout()">Logout</button>
+            </div>
+        </header>
+
+        <div class="admin-content">
+            
+            <!-- Dashboard Tab -->
+            <div id="tab-dashboard" class="tab-content">
+                <div class="grid grid-cols-4 mb-8">
+                    <div class="panel panel-body text-center">
+                        <h3 id="stat-categories" style="font-size: 2rem; color: var(--primary);">0</h3>
+                        <p class="text-muted">Categories</p>
+                    </div>
+                    <div class="panel panel-body text-center">
+                        <h3 id="stat-products" style="font-size: 2rem; color: var(--primary);">0</h3>
+                        <p class="text-muted">Products</p>
+                    </div>
+                    <div class="panel panel-body text-center">
+                        <h3 id="stat-enquiries" style="font-size: 2rem; color: var(--warning);">0</h3>
+                        <p class="text-muted">Pending Enquiries</p>
+                    </div>
+                    <div class="panel panel-body text-center">
+                        <h3 id="stat-activity" style="font-size: 2rem; color: var(--success);">0</h3>
+                        <p class="text-muted">Logs</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories Tab -->
+            <div id="tab-categories" class="tab-content hidden">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>Manage Categories</h3>
+                        <button class="btn btn-primary" onclick="openModal('categoryModal')">+ Add Category</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Name</th>
+                                    <th>Slug</th>
+                                    <th>Products</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTableBody">
+                                <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Tab -->
+            <div id="tab-products" class="tab-content hidden">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3>Manage Products</h3>
+                        <button class="btn btn-primary" onclick="openModal('productModal')">+ Add Product</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>SKU</th>
+                                    <th>Image</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                                <tr><td colspan="7" class="text-center">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="tab-settings" class="tab-content hidden">
+                <div class="panel">
+                    <div class="panel-header"><h3>Site Settings</h3></div>
+                    <div class="panel-body">
+                        <form id="settingsForm" onsubmit="handleSaveSettings(event)">
+                            <div class="grid grid-cols-2">
+                                <div class="form-group">
+                                    <label>Company Name</label>
+                                    <input type="text" id="set_companyName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>WhatsApp Number (with country code)</label>
+                                    <input type="text" id="set_whatsapp" required placeholder="919876543210">
+                                </div>
+                                <div class="form-group">
+                                    <label>Contact Email</label>
+                                    <input type="email" id="set_email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>UPI ID</label>
+                                    <input type="text" id="set_upiId" placeholder="merchant@upi">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success mt-4">Save Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Add Category Modal -->
+    <div id="categoryModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add Category</h3>
+                <button class="btn-close" onclick="closeModal('categoryModal')">&times;</button>
+            </div>
+            <form id="categoryForm" onsubmit="handleSaveCategory(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Category Name *</label>
+                        <input type="text" id="cat_name" required placeholder="e.g., Floor Tiles">
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="cat_desc"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Category Image *</label>
+                        <input type="file" id="cat_image" accept="image/*" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('categoryModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="productModal" class="modal-overlay">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>Add Product</h3>
+                <button class="btn-close" onclick="closeModal('productModal')">&times;</button>
+            </div>
+            <form id="productForm" onsubmit="handleSaveProduct(event)">
+                <div class="modal-body grid grid-cols-2">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Product Name *</label>
+                        <input type="text" id="prod_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category *</label>
+                        <select id="prod_category" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Brand *</label>
+                        <input type="text" id="prod_brand" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Size</label>
+                        <input type="text" id="prod_size" placeholder="e.g., 600x600 mm">
+                    </div>
+                    <div class="form-group">
+                        <label>Finish</label>
+                        <input type="text" id="prod_finish" placeholder="e.g., Glossy">
+                    </div>
+                    <div class="form-group">
+                        <label>Price *</label>
+                        <input type="number" id="prod_price" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Unit *</label>
+                        <input type="text" id="prod_unit" required placeholder="e.g., sq.ft, piece">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Product Images (Upload up to 3) *</label>
+                        <input type="file" id="prod_images" accept="image/*" multiple required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('productModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script src="js/drive.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/activity.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/categories.js"></script>
+    <script src="js/products.js"></script>
+</body>
+</html>
