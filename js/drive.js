@@ -78,6 +78,13 @@ async function initializeGapiClient() {
       discoveryDocs: CONFIG.DISCOVERY_DOCS,
     });
     console.log('[drive.js] ✅ gapi.client initialized');
+
+    // FIX: Apply the restored token directly to the Google API client
+    if (accessToken) {
+        gapi.client.setToken({ access_token: accessToken });
+        console.log('[drive.js] ✅ Restored token applied to gapi.client');
+    }
+
     gapiInited = true;
     checkAuthAndInit();
   } catch (e) {
