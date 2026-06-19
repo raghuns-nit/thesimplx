@@ -31,7 +31,8 @@ const CONFIG = {
 let tokenClient;
 let gapiInited = false;
 let gisInited = false;
-let accessToken = null;
+// Restore token from session storage if it exists
+let accessToken = sessionStorage.getItem('g_access_token') || null;
 
 const STATE = {
   rootFolderId: null,
