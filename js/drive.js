@@ -88,6 +88,8 @@ function gisLoaded() {
     },
   });
   gisInited = true;
+  // Notify the login page that tokenClient is ready (enables the button)
+  if (typeof onGisReady === "function") onGisReady();
 }
 
 // ── App boot flow ────────────────────────────────────────────

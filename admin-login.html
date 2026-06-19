@@ -1,50 +1,126 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - theSimpLx</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/admin.css">
-</head>
-<body class="login-page">
-    <div class="login-card">
-        <div class="logo-icon mb-4">🏗️</div>
-        <h1 class="mb-2">Admin Portal</h1>
-        <p class="text-muted mb-8">Sign in with your authorized Google Account to access the CMS.</p>
-        
-        <button id="loginBtn" class="btn btn-primary btn-block" style="padding: 0.75rem;" onclick="handleLogin()">
-            Sign in with Google
-        </button>
-        
-        <p id="errorMsg" class="mt-4" style="color: var(--danger); display: none;"></p>
-        
-        <div class="mt-8 text-sm text-muted">
-            <a href="index.html">&larr; Back to Website</a>
-        </div>
-    </div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Admin Login - theSimpLx</title>
+        <link rel="stylesheet" href="css/style.css" />
+        <link rel="stylesheet" href="css/admin.css" />
+    </head>
+    <body class="login-page">
+        <div class="login-card">
+            <div class="logo-icon mb-4" style="font-size: 3rem">🏗️</div>
+            <h1 class="mb-2">Admin Portal</h1>
+            <p class="text-muted mb-8">
+                Sign in with your authorized Google Account to access the CMS.
+            </p>
 
-    <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script src="js/drive.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/activity.js"></script>
-    <script>
-        window.onAppReady = async function() {
-            if(accessToken) {
+            <button
+                id="loginBtn"
+                class="btn btn-primary btn-block"
+                style="padding: 0.75rem; font-size: 1rem"
+                onclick="handleLogin()"
+                disabled
+            >
+                ⏳ Loading Google Sign-In…
+            </button>
+
+            <p
+                id="errorMsg"
+                class="mt-4"
+                style="color: var(--danger); display: none"
+            ></p>
+
+            <div class="mt-8" style="font-size: 0.875rem">
+                <a href="index.html">&larr; Back to Website</a>
+            </div>
+        </div>
+
+        <!--
+        FIX: Local scripts MUST load before the Google scripts.
+        The Google scripts call gisLoaded() / gapiLoaded() in their
+        onload callbacks.  Those functions are defined in drive.js.
+        If drive.js hasn't loaded yet the callbacks throw a silent
+        ReferenceError, tokenClient is never created, and the login
+        button does nothing.
+    -->
+        <script src="js/drive.js"></script>
+        <script src="js/storage.js"></script>
+        <script src="js/auth.js"></script>
+        <script src="js/activity.js"></script>
+
+        <!--
+        Page-specific onAppReady — defined here (after local scripts)
+        so it exists before checkAuthAndInit() calls it.
+    -->
+        <script>
+            window.onAppReady = async function () {
+                if (!accessToken) return; // no token yet — wait for user to click
+
+                showLoader("Validating your account…");
                 const isValid = await validateAdminSession();
-                if(isValid) {
-                    await logActivity('LOGIN', 'user', STATE.userEmail);
-                    window.location.href = 'admin.html';
+                hideLoader();
+
+                if (isValid) {
+                    await logActivity("LOGIN", "user", STATE.userEmail);
+                    window.location.href = "admin.html";
                 } else {
-                    document.getElementById('errorMsg').innerText = "Unauthorized account. Please contact Super Admin.";
-                    document.getElementById('errorMsg').style.display = 'block';
-                    google.accounts.oauth2.revoke(accessToken);
+                    const errEl = document.getElementById("errorMsg");
+                    errEl.innerText =
+                        "Unauthorized account. Contact the Super Admin.";
+                    errEl.style.display = "block";
+                    // Revoke the token so the user can try again with a different account
+                    const tok = accessToken;
                     accessToken = null;
+                    if (tok) google.accounts.oauth2.revoke(tok, () => {});
+                    // Re-enable button
+                    const btn = document.getElementById("loginBtn");
+                    btn.disabled = false;
+                    btn.innerText = "Sign in with Google";
                 }
+            };
+
+            /**
+             * Override handleLogin to guard against tokenClient not being
+             * ready yet (e.g. user clicks extremely fast before async
+             * Google scripts finish loading).
+             */
+            function handleLogin() {
+                if (!tokenClient) {
+                    // Scripts still loading — retry in 300 ms
+                    const btn = document.getElementById("loginBtn");
+                    btn.innerText = "⏳ Still loading, please wait…";
+                    setTimeout(handleLogin, 300);
+                    return;
+                }
+                tokenClient.requestAccessToken({ prompt: "select_account" });
             }
-        };
-    </script>
-</body>
+
+            /**
+             * Called from drive.js gisLoaded() once tokenClient is ready.
+             * Enables the login button.
+             */
+            function onGisReady() {
+                const btn = document.getElementById("loginBtn");
+                btn.disabled = false;
+                btn.innerText = "🔑 Sign in with Google";
+            }
+        </script>
+
+        <!--
+        FIX: async so Google scripts load in parallel without blocking.
+        Their onload callbacks (gisLoaded / gapiLoaded) are now defined
+        in drive.js which is already loaded above.
+    -->
+        <script
+            async
+            src="https://accounts.google.com/gsi/client"
+            onload="gisLoaded()"
+        ></script>
+        <script
+            async
+            src="https://apis.google.com/js/api.js"
+            onload="gapiLoaded()"
+        ></script>
+    </body>
 </html>
