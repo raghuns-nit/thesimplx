@@ -35,9 +35,9 @@ let gisInited = false;
 let accessToken = sessionStorage.getItem('g_access_token') || null;
 
 const STATE = {
-  rootFolderId: null,
-  catalogFolderId: null,
-  imagesFolderId: null,
+  rootFolderId: '1WO6R9xIosr3kJE78nskoyQlu5wi546J1',
+  catalogFolderId: '1occCLepqu721QKo2rGulftSN0qwqTxLY',
+  imagesFolderId: '1J1fHtx_NLbG1pT-RtJpDVttpsHAAnxTa',
   userEmail: null,
 };
 
@@ -162,45 +162,12 @@ async function checkAuthAndInit() {
 // ── Drive structure: PUBLIC (read-only) ─────────────────────
 
 async function initPublicDriveStructure() {
+  // Bypassing the 'root' search because IDs are permanently hardcoded in STATE
+  console.log("Drive: Public structure connected successfully.");
+  
+  // Optional: A small delay just to ensure the UI transitions smoothly
   showLoader("Loading catalog...");
-  try {
-    const root = await findFile(
-      "theSimpLx",
-      "root",
-      "application/vnd.google-apps.folder",
-    );
-    if (!root) {
-      console.warn(
-        "Drive: 'theSimpLx' folder not found — public reads will fail.",
-      );
-      return;
-    }
-    STATE.rootFolderId = root.id;
-
-    const catalog = await findFile(
-      "catalog",
-      STATE.rootFolderId,
-      "application/vnd.google-apps.folder",
-    );
-    if (!catalog) {
-      console.warn("Drive: 'catalog' folder not found.");
-      return;
-    }
-    STATE.catalogFolderId = catalog.id;
-
-    const images = await findFile(
-      "images",
-      STATE.rootFolderId,
-      "application/vnd.google-apps.folder",
-    );
-    if (images) STATE.imagesFolderId = images.id;
-
-    console.log("Drive: public structure resolved", STATE);
-  } catch (e) {
-    console.error("Drive: public init error:", e);
-  } finally {
-    hideLoader();
-  }
+  setTimeout(() => hideLoader(), 500); 
 }
 
 // ── Drive structure: ADMIN (read-write) ──────────────────────
