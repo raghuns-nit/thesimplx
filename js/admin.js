@@ -7,16 +7,27 @@
 
 // ── Tab switching ─────────────────────────────────────────────
 
-function switchTab(tabId) {
-    // Update sidebar active state
+function switchTab(tabId, element = null) {
+    // 1. Update sidebar active state safely
     document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active'));
-    event.currentTarget.classList.add('active');
+    
+    if (element) {
+        element.classList.add('active'); // If element passed explicitly
+    } else if (typeof event !== 'undefined' && event && event.currentTarget) {
+        event.currentTarget.classList.add('active'); // Fallback to window.event
+    }
 
-    // Hide all tab panels, show the selected one
+    // 2. Hide all tab panels, show the selected one safely
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    document.getElementById('tab-' + tabId).classList.remove('hidden');
+    
+    const targetPanel = document.getElementById('tab-' + tabId);
+    if (targetPanel) {
+        targetPanel.classList.remove('hidden');
+    } else {
+        console.error(`[Navigation Error] Could not find HTML element with id="tab-${tabId}"`);
+    }
 
-    // Update header title
+    // 3. Update header title
     const titles = {
         dashboard:  'Dashboard',
         categories: 'Manage Categories',
@@ -25,11 +36,15 @@ function switchTab(tabId) {
         settings:   'Site Settings',
         activity:   'Activity Logs'
     };
-    document.getElementById('pageTitle').innerText = titles[tabId] || 'Dashboard';
+    
+    const titleEl = document.getElementById('pageTitle');
+    if (titleEl) {
+        titleEl.innerText = titles[tabId] || 'Dashboard';
+    }
 
-    // Lazy-load data for tabs that fetch on demand
-    if (tabId === 'enquiries') loadEnquiries();
-    if (tabId === 'activity')  loadActivityLogs();
+    // 4. Lazy-load data for tabs that fetch on demand
+    if (tabId === 'enquiries' && typeof loadEnquiries === 'function') loadEnquiries();
+    if (tabId === 'activity' && typeof loadActivityLogs === 'function') loadActivityLogs();
 }
 
 // ── Modal helpers ─────────────────────────────────────────────
