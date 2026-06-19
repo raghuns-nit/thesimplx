@@ -83,6 +83,7 @@
                     // Revoke the token so the user can try again with a different account
                     const tok = accessToken;
                     accessToken = null;
+                    sessionStorage.removeItem('g_access_token'); // Clear from storage
                     if (tok) google.accounts.oauth2.revoke(tok, () => {});
                     // Re-enable button
                     const btn = document.getElementById("loginBtn");
