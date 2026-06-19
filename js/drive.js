@@ -98,6 +98,8 @@ function gisLoaded() {
           throw response;
         }
         accessToken = response.access_token;
+        // Save the token so it survives the redirect to admin.html
+        sessionStorage.setItem('g_access_token', accessToken);
         console.log('[drive.js] ✅ Access token acquired');
         checkAuthAndInit();
       },
