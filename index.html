@@ -25,9 +25,9 @@
 
         <title>theSimpLx - Building Material Catalog</title>
 
-        <link rel="stylesheet" href="css/style.css" />
-        <link rel="stylesheet" href="css/cards.css" />
-        <link rel="stylesheet" href="css/responsive.css" />
+        <link rel="stylesheet" href="css/style.css?v=2" />
+        <link rel="stylesheet" href="css/cards.css?v=2" />
+        <link rel="stylesheet" href="css/responsive.css?v=2" />
     </head>
     <body>
         <!-- ── Header ───────────────────────────────────────────── -->
@@ -280,25 +280,19 @@
         <!-- Floating WhatsApp button -->
         <button class="floating-wa" onclick="openGeneralWhatsApp()">💬</button>
 
-        <!-- Google APIs -->
-        <script
-            src="https://accounts.google.com/gsi/client"
-            onload="gisLoaded()"
-        ></script>
-        <script
-            src="https://apis.google.com/js/api.js"
-            onload="gapiLoaded()"
-        ></script>
-        <!-- Local scripts first -->
-        <script src="js/drive.js"></script>
-        <script src="js/storage.js"></script>
-        <script src="js/whatsapp.js"></script>
-        <script src="js/upi.js"></script>
-        <script src="js/app.js"></script>
-        <script src="js/contact.js"></script>
-        <!-- page-specific scripts e.g. filters.js, contact.js, estimate.js -->
+        <!--
+        FIX: Load local scripts FIRST so they define the callback functions
+        BEFORE the Google scripts load and call them in their onload handlers.
+        This prevents "ReferenceError: gisLoaded is not defined"
+        -->
+        <script src="js/drive.js?v=2"></script>
+        <script src="js/storage.js?v=2"></script>
+        <script src="js/whatsapp.js?v=2"></script>
+        <script src="js/upi.js?v=2"></script>
+        <script src="js/app.js?v=2"></script>
+        <script src="js/contact.js?v=2"></script>
 
-        <!-- Google scripts last, with async -->
+        <!-- Google scripts LAST, with async so they don't block page load -->
         <script
             async
             src="https://accounts.google.com/gsi/client"

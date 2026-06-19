@@ -65,54 +65,85 @@ function hideLoader() {
 // ── Google API init callbacks ────────────────────────────────
 
 function gapiLoaded() {
+  console.log('[drive.js] gapiLoaded() fired');
   gapi.load("client", initializeGapiClient);
 }
 
 async function initializeGapiClient() {
-  await gapi.client.init({
-    apiKey: CONFIG.API_KEY,
-    discoveryDocs: CONFIG.DISCOVERY_DOCS,
-  });
-  gapiInited = true;
-  checkAuthAndInit();
+  console.log('[drive.js] initializeGapiClient() starting...');
+  try {
+    await gapi.client.init({
+      apiKey: CONFIG.API_KEY,
+      discoveryDocs: CONFIG.DISCOVERY_DOCS,
+    });
+    console.log('[drive.js] ✅ gapi.client initialized');
+    gapiInited = true;
+    checkAuthAndInit();
+  } catch (e) {
+    console.error('[drive.js] ❌ gapi.client.init error:', e);
+  }
 }
 
 function gisLoaded() {
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CONFIG.CLIENT_ID,
-    scope: CONFIG.SCOPES,
-    callback: (response) => {
-      if (response.error !== undefined) throw response;
-      accessToken = response.access_token;
-      checkAuthAndInit();
-    },
-  });
-  gisInited = true;
-  // Notify the login page that tokenClient is ready (enables the button)
-  if (typeof onGisReady === "function") onGisReady();
+  console.log('[drive.js] gisLoaded() fired');
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CONFIG.CLIENT_ID,
+      scope: CONFIG.SCOPES,
+      callback: (response) => {
+        console.log('[drive.js] OAuth callback received:', { hasError: !!response.error });
+        if (response.error !== undefined) {
+          console.error('[drive.js] OAuth error:', response);
+          throw response;
+        }
+        accessToken = response.access_token;
+        console.log('[drive.js] ✅ Access token acquired');
+        checkAuthAndInit();
+      },
+    });
+    console.log('[drive.js] ✅ tokenClient initialized');
+    gisInited = true;
+    // Notify the login page that tokenClient is ready (enables the button)
+    if (typeof onGisReady === "function") {
+      console.log('[drive.js] Calling onGisReady()');
+      onGisReady();
+    }
+  } catch (e) {
+    console.error('[drive.js] ❌ gisLoaded error:', e);
+  }
 }
 
 // ── App boot flow ────────────────────────────────────────────
 
 async function checkAuthAndInit() {
-  if (!gapiInited || !gisInited) return;
+  console.log('[drive.js] checkAuthAndInit() — gapiInited:', gapiInited, 'gisInited:', gisInited);
+  if (!gapiInited || !gisInited) {
+    console.log('[drive.js] Waiting for both APIs to initialize...');
+    return;
+  }
 
   const path = window.location.pathname;
+  console.log('[drive.js] Current path:', path);
 
   if (path.includes("admin") && !path.includes("admin-login")) {
     // Admin: OAuth token required + full read-write Drive setup
+    console.log('[drive.js] Admin page detected, checking token...');
     if (!accessToken) {
-      window.location.href = "admin-login.html";
+      console.log('[drive.js] ❌ No token — redirecting to login');
+      window.location.href = "admin-login.html?v=2";
       return;
     }
+    console.log('[drive.js] ✅ Token present, initializing Drive structure...');
     await initDriveStructure();
     if (typeof window.onAppReady === "function") window.onAppReady();
   } else if (path.includes("admin-login")) {
     // Login page: no Drive setup needed
+    console.log('[drive.js] Login page detected, calling onAppReady...');
     if (typeof window.onAppReady === "function") window.onAppReady();
   } else {
     // Public pages: discover folder IDs in read-only mode
     // so loadJson() can proceed without an OAuth token.
+    console.log('[drive.js] Public page detected, initializing read-only Drive...');
     await initPublicDriveStructure();
     if (typeof window.onAppReady === "function") window.onAppReady();
   }

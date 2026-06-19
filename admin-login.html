@@ -3,9 +3,12 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />
         <title>Admin Login - theSimpLx</title>
-        <link rel="stylesheet" href="css/style.css" />
-        <link rel="stylesheet" href="css/admin.css" />
+        <link rel="stylesheet" href="css/style.css?v=2" />
+        <link rel="stylesheet" href="css/admin.css?v=2" />
     </head>
     <body class="login-page">
         <div class="login-card">
@@ -44,10 +47,10 @@
         ReferenceError, tokenClient is never created, and the login
         button does nothing.
     -->
-        <script src="js/drive.js"></script>
-        <script src="js/storage.js"></script>
-        <script src="js/auth.js"></script>
-        <script src="js/activity.js"></script>
+        <script src="js/drive.js?v=2"></script>
+        <script src="js/storage.js?v=2"></script>
+        <script src="js/auth.js?v=2"></script>
+        <script src="js/activity.js?v=2"></script>
 
         <!--
         Page-specific onAppReady — defined here (after local scripts)
@@ -55,16 +58,24 @@
     -->
         <script>
             window.onAppReady = async function () {
-                if (!accessToken) return; // no token yet — wait for user to click
+                console.log('[LoginPage] onAppReady called, accessToken =', !!accessToken);
+                
+                if (!accessToken) {
+                    console.log('[LoginPage] No token yet — waiting for user to click');
+                    return;
+                }
 
+                console.log('[LoginPage] Token acquired, validating session...');
                 showLoader("Validating your account…");
                 const isValid = await validateAdminSession();
                 hideLoader();
 
                 if (isValid) {
+                    console.log('[LoginPage] ✅ Session valid, logging activity and redirecting...');
                     await logActivity("LOGIN", "user", STATE.userEmail);
-                    window.location.href = "admin.html";
+                    window.location.href = "admin.html?v=2";
                 } else {
+                    console.log('[LoginPage] ❌ Session invalid — account not authorized');
                     const errEl = document.getElementById("errorMsg");
                     errEl.innerText =
                         "Unauthorized account. Contact the Super Admin.";
@@ -86,13 +97,16 @@
              * Google scripts finish loading).
              */
             function handleLogin() {
+                console.log('[LoginPage] handleLogin clicked, tokenClient ready?', !!tokenClient);
                 if (!tokenClient) {
                     // Scripts still loading — retry in 300 ms
                     const btn = document.getElementById("loginBtn");
                     btn.innerText = "⏳ Still loading, please wait…";
+                    console.log('[LoginPage] tokenClient not ready, retrying in 300ms...');
                     setTimeout(handleLogin, 300);
                     return;
                 }
+                console.log('[LoginPage] Requesting access token...');
                 tokenClient.requestAccessToken({ prompt: "select_account" });
             }
 
@@ -101,6 +115,7 @@
              * Enables the login button.
              */
             function onGisReady() {
+                console.log('[LoginPage] onGisReady fired — Google Identity Services ready');
                 const btn = document.getElementById("loginBtn");
                 btn.disabled = false;
                 btn.innerText = "🔑 Sign in with Google";
