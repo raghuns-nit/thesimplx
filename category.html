@@ -1,116 +1,231 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Products - theSimpLx</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/cards.css">
-    <link rel="stylesheet" href="css/responsive.css">
-</head>
-<body>
-    
-    <header>
-        <div class="header-main">
-            <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
-                <a href="index.html" class="logo-container">
-                    <span class="logo-icon">🏗️</span> <span class="company-name">theSimpLx</span>
-                </a>
-                
-                <nav class="nav-links">
-                    <a href="index.html">Categories</a>
-                    <a href="category.html">All Products</a>
-                    <a href="estimate.html">Tile Estimator</a>
-                    <a href="contact.html">Contact Us</a>
-                </nav>
-            </div>
-        </div>
-    </header>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="description"
+            content="Browse and filter our full range of tiles, bathroom fittings, sanitary ware and construction materials."
+        />
 
+        <title>Products - theSimpLx</title>
 
-    <main class="container section">
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;">
-            <div>
-                <h1 id="pageTitle">All Products</h1>
-                <p class="text-muted mt-1" id="resultCount">Loading...</p>
-            </div>
-            
-            <div class="search-container">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" class="search-input" placeholder="Search product name, brand, or SKU...">
-            </div>
-        </div>
-
-        <div style="display: flex; gap: 2rem; align-items: flex-start;">
-            
-            <!-- Sidebar Filters -->
-            <aside style="width: 250px; flex-shrink: 0; background: var(--bg-white); padding: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius); position: sticky; top: 80px;">
-                <h3 class="mb-4">Filters</h3>
-                
-                <div class="form-group">
-                    <label>Brand</label>
-                    <select id="filterBrand"><option value="">All Brands</option></select>
-                </div>
-                <div class="form-group">
-                    <label>Finish</label>
-                    <select id="filterFinish"><option value="">All Finishes</option></select>
-                </div>
-                <div class="form-group">
-                    <label>Stock Status</label>
-                    <select id="filterStock">
-                        <option value="">All</option>
-                        <option value="In Stock">In Stock</option>
-                        <option value="Out of Stock">Out of Stock</option>
-                    </select>
-                </div>
-            </aside>
-
-            <!-- Product Grid -->
-            <div class="grid grid-cols-3" id="productGrid" style="flex: 1;">
-                <!-- Populated by filters.js -->
-            </div>
-            
-        </div>
-    </main>
-
-    
-    <footer>
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-col">
-                    <h4 class="company-name">theSimpLx</h4>
-                    <p>Premium construction materials and services tailored for your building needs.</p>
-                </div>
-                <div class="footer-col">
-                    <h4>Quick Links</h4>
-                    <ul>
-                        <li><a href="index.html">Categories</a></li>
-                        <li><a href="estimate.html">Tile Estimator</a></li>
-                        <li><a href="contact.html">Contact Us</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h4>Admin</h4>
-                    <ul>
-                        <li><a href="admin-login.html">Admin Portal</a></li>
-                    </ul>
+        <link rel="stylesheet" href="css/style.css" />
+        <link rel="stylesheet" href="css/cards.css" />
+        <link rel="stylesheet" href="css/responsive.css" />
+    </head>
+    <body>
+        <!-- ── Header ───────────────────────────────────────────── -->
+        <header>
+            <div class="header-main">
+                <div
+                    class="container"
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    "
+                >
+                    <a href="index.html" class="logo-container">
+                        <span class="logo-icon">🏗️</span>
+                        <span class="company-name">theSimpLx</span>
+                    </a>
+                    <nav class="nav-links">
+                        <a href="index.html">Categories</a>
+                        <a href="category.html">All Products</a>
+                        <a href="estimate.html">Estimator</a>
+                        <a href="contact.html">Contact Us</a>
+                    </nav>
                 </div>
             </div>
-            <div class="footer-bottom">
-                &copy; 2026 <span class="company-name">theSimpLx</span>. All rights reserved. Built for GitHub Pages.
-            </div>
-        </div>
-    </footer>
-    <button class="floating-wa" onclick="openGeneralWhatsApp()">💬</button>
-    
-    <!-- Google APIs -->
-    <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script src="js/drive.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/whatsapp.js"></script>
-    <script src="js/upi.js"></script>
-    <script src="js/app.js"></script><script src="js/filters.js"></script>
+        </header>
 
-</body>
+        <!-- ── Main ─────────────────────────────────────────────── -->
+        <main class="container section">
+            <!-- Page title + search bar -->
+            <div
+                style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                    margin-bottom: 2rem;
+                "
+            >
+                <div>
+                    <h1 id="pageTitle">All Products</h1>
+                    <p class="text-muted mt-1" id="resultCount">Loading…</p>
+                </div>
+                <div class="search-container">
+                    <span class="search-icon">🔍</span>
+                    <input
+                        type="text"
+                        id="searchInput"
+                        class="search-input"
+                        placeholder="Search name, brand or SKU…"
+                    />
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 2rem; align-items: flex-start">
+                <!-- ── Sidebar Filters ──────────────────────────── -->
+                <aside
+                    style="
+                        width: 240px;
+                        flex-shrink: 0;
+                        background: var(--bg-white);
+                        padding: 1.5rem;
+                        border: 1px solid var(--border);
+                        border-radius: var(--radius);
+                        position: sticky;
+                        top: 80px;
+                    "
+                >
+                    <h3 style="margin-bottom: 1.25rem">Filters</h3>
+
+                    <!-- Brand -->
+                    <div class="form-group">
+                        <label>Brand</label>
+                        <select id="filterBrand">
+                            <option value="">All Brands</option>
+                        </select>
+                    </div>
+
+                    <!-- Finish -->
+                    <div class="form-group">
+                        <label>Finish</label>
+                        <select id="filterFinish">
+                            <option value="">All Finishes</option>
+                        </select>
+                    </div>
+
+                    <!-- Size (NEW) -->
+                    <div class="form-group">
+                        <label>Size</label>
+                        <select id="filterSize">
+                            <option value="">All Sizes</option>
+                        </select>
+                    </div>
+
+                    <!-- Stock Status — now includes Limited Stock -->
+                    <div class="form-group">
+                        <label>Stock Status</label>
+                        <select id="filterStock">
+                            <option value="">All</option>
+                            <option value="In Stock">In Stock</option>
+                            <option value="Limited Stock">Limited Stock</option>
+                            <option value="Out of Stock">Out of Stock</option>
+                        </select>
+                    </div>
+
+                    <!-- Price Range (NEW) -->
+                    <div class="form-group">
+                        <label>Price Range (&#8377;)</label>
+                        <div
+                            style="
+                                display: flex;
+                                gap: 0.5rem;
+                                align-items: center;
+                            "
+                        >
+                            <input
+                                type="number"
+                                id="filterPriceMin"
+                                placeholder="Min"
+                                min="0"
+                                style="flex: 1; min-width: 0"
+                            />
+                            <span
+                                style="
+                                    color: var(--text-muted);
+                                    flex-shrink: 0;
+                                    font-size: 0.9rem;
+                                "
+                                >–</span
+                            >
+                            <input
+                                type="number"
+                                id="filterPriceMax"
+                                placeholder="Max"
+                                min="0"
+                                style="flex: 1; min-width: 0"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Clear Filters (NEW) -->
+                    <button
+                        class="btn btn-outline"
+                        style="width: 100%; margin-top: 0.5rem"
+                        onclick="clearFilters()"
+                    >
+                        ✕ Clear Filters
+                    </button>
+                </aside>
+
+                <!-- ── Product Grid ─────────────────────────────── -->
+                <div
+                    class="grid grid-cols-3"
+                    id="productGrid"
+                    style="flex: 1; min-width: 0"
+                >
+                    <!-- Populated by filters.js → renderProducts() -->
+                </div>
+            </div>
+        </main>
+
+        <!-- ── Footer ───────────────────────────────────────────── -->
+        <footer>
+            <div class="container">
+                <div class="footer-grid">
+                    <div class="footer-col">
+                        <h4 class="company-name">theSimpLx</h4>
+                        <p>
+                            Premium construction materials and services tailored
+                            for your building needs.
+                        </p>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Quick Links</h4>
+                        <ul>
+                            <li><a href="index.html">Categories</a></li>
+                            <li><a href="category.html">All Products</a></li>
+                            <li><a href="estimate.html">Tile Estimator</a></li>
+                            <li><a href="contact.html">Contact Us</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Admin</h4>
+                        <ul>
+                            <li><a href="admin-login.html">Admin Portal</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    &copy; 2026 <span class="company-name">theSimpLx</span>. All
+                    rights reserved. Built for GitHub Pages.
+                </div>
+            </div>
+        </footer>
+
+        <!-- Floating WhatsApp button -->
+        <button class="floating-wa" onclick="openGeneralWhatsApp()">💬</button>
+
+        <!-- Google APIs -->
+        <script
+            src="https://accounts.google.com/gsi/client"
+            onload="gisLoaded()"
+        ></script>
+        <script
+            src="https://apis.google.com/js/api.js"
+            onload="gapiLoaded()"
+        ></script>
+        <script src="js/drive.js"></script>
+        <script src="js/storage.js"></script>
+        <script src="js/whatsapp.js"></script>
+        <script src="js/upi.js"></script>
+        <script src="js/app.js"></script>
+        <script src="js/filters.js"></script>
+    </body>
 </html>
