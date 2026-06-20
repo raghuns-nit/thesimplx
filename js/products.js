@@ -121,6 +121,8 @@ function editProduct(internalId) {
     p.stockStatus || "In Stock";
   document.getElementById("prod_price").value = p.price;
   document.getElementById("prod_unit").value = p.unit;
+  document.getElementById("prod_onSale").checked = p.onSale || false;
+  document.getElementById("prod_discount").value = p.discount || "";
 
   openModal("productModal");
 }
@@ -149,6 +151,8 @@ async function handleSaveProduct(e) {
     stockStatus: document.getElementById("prod_stockStatus").value,
     price: document.getElementById("prod_price").value,
     unit: document.getElementById("prod_unit").value.trim(),
+    onSale: document.getElementById("prod_onSale").checked, // NEW
+    discount: document.getElementById("prod_discount").value // NEW
   };
 
   try {
