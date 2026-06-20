@@ -67,42 +67,22 @@
 
             <div class="admin-content">
                 <!-- ── Dashboard Tab ── -->
-                <div id="tab-dashboard" class="tab-content">
+               <div id="tab-dashboard" class="tab-content">
                     <div class="grid grid-cols-4 mb-8">
-                        <div class="panel panel-body text-center">
-                            <h3
-                                id="stat-categories"
-                                style="font-size: 2rem; color: var(--primary)"
-                            >
-                                0
-                            </h3>
+                        <div class="panel panel-body text-center" style="cursor:pointer;" onclick="document.querySelectorAll('.admin-nav-item')[1].click()">
+                            <h3 id="stat-categories" style="font-size: 2rem; color: var(--primary)">0</h3>
                             <p class="text-muted">Categories</p>
                         </div>
-                        <div class="panel panel-body text-center">
-                            <h3
-                                id="stat-products"
-                                style="font-size: 2rem; color: var(--primary)"
-                            >
-                                0
-                            </h3>
+                        <div class="panel panel-body text-center" style="cursor:pointer;" onclick="document.querySelectorAll('.admin-nav-item')[2].click()">
+                            <h3 id="stat-products" style="font-size: 2rem; color: var(--primary)">0</h3>
                             <p class="text-muted">Products</p>
                         </div>
-                        <div class="panel panel-body text-center">
-                            <h3
-                                id="stat-enquiries"
-                                style="font-size: 2rem; color: var(--warning)"
-                            >
-                                0
-                            </h3>
+                        <div class="panel panel-body text-center" style="cursor:pointer;" onclick="document.querySelectorAll('.admin-nav-item')[3].click()">
+                            <h3 id="stat-enquiries" style="font-size: 2rem; color: var(--warning)">0</h3>
                             <p class="text-muted">Pending Enquiries</p>
                         </div>
-                        <div class="panel panel-body text-center">
-                            <h3
-                                id="stat-activity"
-                                style="font-size: 2rem; color: var(--success)"
-                            >
-                                0
-                            </h3>
+                        <div class="panel panel-body text-center" style="cursor:pointer;" onclick="document.querySelectorAll('.admin-nav-item')[5].click()">
+                            <h3 id="stat-activity" style="font-size: 2rem; color: var(--success)">0</h3>
                             <p class="text-muted">Activity Logs</p>
                         </div>
                     </div>
@@ -538,7 +518,14 @@
                                 placeholder="e.g., sq.ft, piece, bag"
                             />
                         </div>
-
+<div class="form-group" style="display:flex; align-items:center; gap:0.5rem; margin-top:1.5rem;">
+                            <input type="checkbox" id="prod_onSale" style="width:20px; height:20px;" />
+                            <label style="margin:0; font-weight:bold; color:var(--danger);">Mark as "On Sale"</label>
+                        </div>
+                        <div class="form-group">
+                            <label>Discount % (Optional)</label>
+                            <input type="number" id="prod_discount" min="0" max="100" placeholder="e.g., 15" />
+                        </div>
                         <div class="form-group" style="grid-column: span 2">
                             <!-- FIX: removed HTML required; JS validates (required on Add, optional on Edit) -->
                             <label>
