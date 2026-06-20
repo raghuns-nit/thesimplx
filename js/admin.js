@@ -108,54 +108,87 @@ window.onAppReady = async function () {
 };
 
 // ── Dashboard ─────────────────────────────────────────────────
+// Helper to fetch live data directly from Google Sheets
+async function fetchEnquiriesFromSheet() {
+    // ⚠️ REPLACE THIS WITH YOUR ACTUAL SHEET ID
+    const SHEET_ID = '1wGARZVJsCshgdpCdPJv5MlZ22hKlULJlJYp7GIUq9gY'; 
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+    
+    try {
+        const response = await fetch(url);
+        const text = await response.text();
+        // Strip out the Google wrapper to get pure JSON
+        const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+        const data = JSON.parse(jsonString);
+        return data.table.rows || [];
+    } catch (error) {
+        console.error("Error fetching Google Sheet:", error);
+        return [];
+    }
+}
 
 async function loadDashboardData() {
     showLoader('Loading Dashboard...');
-    const [cats, prods, logs, enqs] = await Promise.all([
+    
+    const [cats, prods, logs, sheetRows] = await Promise.all([
         loadJson('categories.json'),
         loadJson('products.json'),
         loadJson('activity_logs.json'),
-        loadJson('enquiries.json')
+        fetchEnquiriesFromSheet() // <--- Fetch directly from the sheet
     ]);
 
     document.getElementById('stat-categories').innerText = cats.length;
     document.getElementById('stat-products').innerText   = prods.length;
     document.getElementById('stat-activity').innerText   = logs.length;
-    // FIX: count only Pending enquiries (was always 0 before)
-    document.getElementById('stat-enquiries').innerText  =
-        enqs.filter(e => e.status === 'Pending').length;
+    
+    // Count all rows in the sheet as pending enquiries
+    document.getElementById('stat-enquiries').innerText  = sheetRows.length;
 
     hideLoader();
+}
 }
 
 // ── Enquiries tab ─────────────────────────────────────────────
 
 async function loadEnquiries() {
     showLoader('Loading Enquiries...');
-    const data  = await loadJson('enquiries.json');
+    const rows = await fetchEnquiriesFromSheet();
     const tbody = document.getElementById('enquiriesTableBody');
     if (!tbody) { hideLoader(); return; }
 
-    if (!data.length) {
+    if (!rows.length) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:2rem; color:var(--text-muted);">No enquiries yet.</td></tr>';
         hideLoader();
         return;
     }
 
-    tbody.innerHTML = data.map(e => `
-        <tr>
-            <td><small>${e.date ? new Date(e.date).toLocaleString() : '—'}</small></td>
-            <td><strong>${e.name || '—'}</strong></td>
-            <td>${e.phone || '—'}</td>
-            <td>${e.email || '—'}</td>
-            <td style="max-width:260px; white-space:pre-wrap;">${e.message || '—'}</td>
-            <td>
-                <span class="badge ${e.status === 'Pending' ? 'badge-warning' : 'badge-success'}">
-                    ${e.status || 'Unknown'}
-                </span>
-            </td>
-        </tr>
-    `).join('');
+    // Reverse the array so the newest messages appear at the top
+    const reversedRows = rows.slice().reverse();
+
+    tbody.innerHTML = reversedRows.map(row => {
+        // IMPORTANT: These numbers represent your spreadsheet columns.
+        // c[0] is Column A (Timestamp), c[1] is Column B, c[2] is Column C, etc.
+        // Adjust these indexes if your Google Sheet columns are in a different order!
+        const date    = row.c[0] ? (row.c[0].f || row.c[0].v) : '—';
+        const name    = row.c[1] ? row.c[1].v : '—';
+        const email   = row.c[2] ? row.c[2].v : '—';
+        const phone   = row.c[3] ? row.c[3].v : '—';
+        const message = row.c[4] ? row.c[4].v : '—';
+
+        return `
+            <tr>
+                <td><small>${date}</small></td>
+                <td><strong>${name}</strong></td>
+                <td>${phone}</td>
+                <td>${email}</td>
+                <td style="max-width:260px; white-space:pre-wrap;">${message}</td>
+                <td>
+                    <span class="badge badge-warning">Pending</span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
     hideLoader();
 }
 
