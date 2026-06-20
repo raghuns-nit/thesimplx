@@ -1,32 +1,37 @@
+async function submitToGoogleForms(event) {
+    event.preventDefault();
+    
+    // 1. Get your specific Google Form action URL
+    // It looks like: https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse
+    const formUrl = "https://docs.google.com/forms/d/e/15APs68u20ScuqRkONj9KNqhRfZyPe97gPs6lzO5wkDw/formResponse";
+    
+    // 2. Gather the data from your HTML inputs
+    const name = document.getElementById('contactName').value;
+    const email = document.getElementById('contactEmail').value;
+    const phone = document.getElementById('contactPhone').value;
+    const message = document.getElementById('contactMessage').value;
 
-// Contact Form Logic
-async function submitContactForm(e) {
-    e.preventDefault();
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerText = "Submitting...";
-    
-    const enquiry = {
-        id: 'ENQ_' + Date.now(),
-        date: new Date().toISOString(),
-        name: document.getElementById('c_name').value,
-        email: document.getElementById('c_email').value,
-        phone: document.getElementById('c_phone').value,
-        message: document.getElementById('c_msg').value,
-        status: 'Pending'
-    };
-    
+    // 3. Map the data to your specific entry IDs from Step 1
+    const formData = new FormData();
+    formData.append("entry.2082304499", name);    // Replace with your Name entry ID
+    formData.append("entry.140362742", email);   // Replace with your Email entry ID
+    formData.append("entry.516630700", phone);   // Replace with your Phone entry ID
+    formData.append("entry.1706491249", message); // Replace with your Message entry ID
+
     try {
-        let enquiries = await loadJson('enquiries.json');
-        enquiries.push(enquiry);
-        await saveJson('enquiries.json', enquiries);
-        
+        // Send the data silently
+        await fetch(formUrl, {
+            method: "POST",
+            mode: "no-cors", // Crucial: This prevents the browser from blocking the request
+            body: formData
+        });
+
+        // Show success message and clear form
+        alert("Thank you! Your enquiry has been received.");
         document.getElementById('contactForm').reset();
-        document.getElementById('successMsg').classList.remove('hidden');
-    } catch(err) {
-        alert("Failed to submit enquiry. Please try again.");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Send Message";
+
+    } catch (error) {
+        console.error("Error submitting form:", error);
+        alert("There was an issue sending your message. Please try again.");
     }
 }
