@@ -146,7 +146,6 @@ async function loadDashboardData() {
 
     hideLoader();
 }
-}
 
 // ── Enquiries tab ─────────────────────────────────────────────
 
