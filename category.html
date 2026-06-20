@@ -13,6 +13,40 @@
         <link rel="stylesheet" href="css/style.css" />
         <link rel="stylesheet" href="css/cards.css" />
         <link rel="stylesheet" href="css/responsive.css" />
+        <style>
+        /* Responsive layout for the Products page */
+        .catalog-layout {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+        .catalog-sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background: var(--bg-white);
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            position: sticky;
+            top: 80px;
+        }
+        .catalog-grid-container {
+            flex: 1; 
+            min-width: 0;
+        }
+
+        /* Mobile view: Stack them vertically */
+        @media (max-width: 768px) {
+            .catalog-layout {
+                flex-direction: column;
+            }
+            .catalog-sidebar {
+                width: 100%;
+                position: static; /* Removes sticky behavior so users can scroll down */
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
     </head>
     <body>
         <!-- ── Header ───────────────────────────────────────────── -->
@@ -68,20 +102,8 @@
                 </div>
             </div>
 
-            <div style="display: flex; gap: 2rem; align-items: flex-start">
-                <!-- ── Sidebar Filters ──────────────────────────── -->
-                <aside
-                    style="
-                        width: 240px;
-                        flex-shrink: 0;
-                        background: var(--bg-white);
-                        padding: 1.5rem;
-                        border: 1px solid var(--border);
-                        border-radius: var(--radius);
-                        position: sticky;
-                        top: 80px;
-                    "
-                >
+            <div class="catalog-layout">
+                <aside class="catalog-sidebar">
                     <h3 style="margin-bottom: 1.25rem">Filters</h3>
 
                     <!-- Brand -->
@@ -165,13 +187,8 @@
                 </aside>
 
                 <!-- ── Product Grid ─────────────────────────────── -->
-                <div
-                    class="grid grid-cols-3"
-                    id="productGrid"
-                    style="flex: 1; min-width: 0"
-                >
-                    <!-- Populated by filters.js → renderProducts() -->
-                </div>
+                <div class="grid grid-cols-3 catalog-grid-container" id="productGrid">
+                    </div>
             </div>
         </main>
 
