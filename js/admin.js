@@ -12,9 +12,9 @@ function switchTab(tabId, element = null) {
     document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active'));
     
     if (element) {
-        element.classList.add('active'); // If element passed explicitly
+        element.classList.add('active'); 
     } else if (typeof event !== 'undefined' && event && event.currentTarget) {
-        event.currentTarget.classList.add('active'); // Fallback to window.event
+        event.currentTarget.classList.add('active'); 
     }
 
     // 2. Hide all tab panels, show the selected one safely
@@ -23,8 +23,6 @@ function switchTab(tabId, element = null) {
     const targetPanel = document.getElementById('tab-' + tabId);
     if (targetPanel) {
         targetPanel.classList.remove('hidden');
-    } else {
-        console.error(`[Navigation Error] Could not find HTML element with id="tab-${tabId}"`);
     }
 
     // 3. Update header title
@@ -38,13 +36,19 @@ function switchTab(tabId, element = null) {
     };
     
     const titleEl = document.getElementById('pageTitle');
-    if (titleEl) {
-        titleEl.innerText = titles[tabId] || 'Dashboard';
-    }
+    if (titleEl) titleEl.innerText = titles[tabId] || 'Dashboard';
 
-    // 4. Lazy-load data for tabs that fetch on demand
+    // 4. Lazy-load data
     if (tabId === 'enquiries' && typeof loadEnquiries === 'function') loadEnquiries();
     if (tabId === 'activity' && typeof loadActivityLogs === 'function') loadActivityLogs();
+
+    // -------------------------------------------------------------
+    // FIX: Close the mobile sidebar automatically after clicking a tab
+    // -------------------------------------------------------------
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+    }
 }
 
 // ── Modal helpers ─────────────────────────────────────────────
