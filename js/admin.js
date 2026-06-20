@@ -129,65 +129,139 @@ async function fetchEnquiriesFromSheet() {
 
 async function loadDashboardData() {
     showLoader('Loading Dashboard...');
-    
-    const [cats, prods, logs, sheetRows] = await Promise.all([
+
+    // Fetch the standard data, PLUS the new metadata file (default to {} if it doesn't exist yet)
+    const [cats, prods, logs, sheetRows, meta] = await Promise.all([
         loadJson('categories.json'),
         loadJson('products.json'),
         loadJson('activity_logs.json'),
-        fetchEnquiriesFromSheet() // <--- Fetch directly from the sheet
+        fetchEnquiriesFromSheet(),
+        loadJson('enquiries_meta.json').catch(() => ({})) 
     ]);
 
     document.getElementById('stat-categories').innerText = cats.length;
     document.getElementById('stat-products').innerText   = prods.length;
     document.getElementById('stat-activity').innerText   = logs.length;
-    
-    // Count all rows in the sheet as pending enquiries
-    document.getElementById('stat-enquiries').innerText  = sheetRows.length;
 
+    // Calculate actual Pending count based on the metadata
+    const metaObj = Array.isArray(meta) ? {} : meta;
+    let pendingCount = 0;
+    
+    sheetRows.forEach(row => {
+        const id = row.c[0] ? (row.c[0].f || row.c[0].v) : '—';
+        const customData = metaObj[id] || {};
+        if (customData.status !== 'Closed') {
+            pendingCount++;
+        }
+    });
+
+    document.getElementById('stat-enquiries').innerText = pendingCount;
     hideLoader();
 }
+
 // ── Enquiries tab ─────────────────────────────────────────────
 
 async function loadEnquiries() {
     showLoader('Loading Enquiries...');
-    const rows = await fetchEnquiriesFromSheet();
+    
+    // 1. Fetch BOTH the read-only Google Sheet and the read-write Drive JSON
+    const [rows, meta] = await Promise.all([
+        fetchEnquiriesFromSheet(),
+        loadJson('enquiries_meta.json').catch(() => ({}))
+    ]);
+
+    // Save meta globally so the modal can access it
+    window.enquiriesMeta = Array.isArray(meta) ? {} : meta;
+
     const tbody = document.getElementById('enquiriesTableBody');
     if (!tbody) { hideLoader(); return; }
 
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:2rem; color:var(--text-muted);">No enquiries yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:2rem; color:var(--text-muted);">No enquiries yet.</td></tr>';
         hideLoader();
         return;
     }
 
-    // Reverse the array so the newest messages appear at the top
     const reversedRows = rows.slice().reverse();
 
+    // 2. Map through the rows and merge the data
     tbody.innerHTML = reversedRows.map(row => {
-        // IMPORTANT: These numbers represent your spreadsheet columns.
-        // c[0] is Column A (Timestamp), c[1] is Column B, c[2] is Column C, etc.
-        // Adjust these indexes if your Google Sheet columns are in a different order!
         const date    = row.c[0] ? (row.c[0].f || row.c[0].v) : '—';
         const name    = row.c[1] ? row.c[1].v : '—';
         const email   = row.c[2] ? row.c[2].v : '—';
         const phone   = row.c[3] ? row.c[3].v : '—';
         const message = row.c[4] ? row.c[4].v : '—';
 
+        // Use the exact timestamp string as a unique ID to match records
+        const id = date;
+
+        // Pull the custom assignment/status from our JSON file
+        const customData = window.enquiriesMeta[id] || {};
+        const status     = customData.status || 'Pending';
+        const assignee   = customData.assignee || 'Unassigned';
+        const comment    = customData.comment || '';
+
+        const badgeClass = status === 'Closed' ? 'badge-success' : 'badge-warning';
+
         return `
             <tr>
                 <td><small>${date}</small></td>
-                <td><strong>${name}</strong></td>
-                <td>${phone}</td>
-                <td>${email}</td>
-                <td style="max-width:260px; white-space:pre-wrap;">${message}</td>
                 <td>
-                    <span class="badge badge-warning">Pending</span>
+                    <strong>${name}</strong><br>
+                    <small class="text-muted">Assigned: <span style="color:var(--primary);">${assignee}</span></small>
+                </td>
+                <td>${phone}<br><small>${email}</small></td>
+                <td style="max-width:240px; white-space:pre-wrap;">${message}</td>
+                <td style="max-width:180px; font-size:0.85rem; color:var(--text-muted);">${comment}</td>
+                <td>
+                    <span class="badge ${badgeClass}">${status}</span>
+                </td>
+                <td>
+                    <button class="btn btn-outline" style="padding:0.25rem 0.5rem;" onclick="openEnquiryModal('${encodeURIComponent(id)}')">Update</button>
                 </td>
             </tr>
         `;
     }).join('');
     
     hideLoader();
+}
+
+// ── Enquiries Update Handlers ─────────────────────────────────
+
+function openEnquiryModal(encodedId) {
+    const id = decodeURIComponent(encodedId);
+    const customData = window.enquiriesMeta[id] || {};
+
+    // Populate the modal with existing data
+    document.getElementById('enq_id').value = id;
+    document.getElementById('enq_assignee').value = customData.assignee || '';
+    document.getElementById('enq_status').value = customData.status || 'Pending';
+    document.getElementById('enq_comment').value = customData.comment || '';
+
+    openModal('enquiryModal');
+}
+
+async function handleSaveEnquiryMeta(e) {
+    e.preventDefault();
+    const id = document.getElementById('enq_id').value;
+
+    // Build or update the record for this specific enquiry
+    window.enquiriesMeta[id] = {
+        assignee: document.getElementById('enq_assignee').value.trim(),
+        status: document.getElementById('enq_status').value,
+        comment: document.getElementById('enq_comment').value.trim()
+    };
+
+    showLoader('Saving update...');
+    
+    // Save the updated metadata back to Google Drive
+    await saveJson('enquiries_meta.json', window.enquiriesMeta);
+
+    closeModal('enquiryModal');
+    
+    // Refresh the table and the dashboard pending count
+    await loadEnquiries();
+    await loadDashboardData(); 
 }
 
 // ── Activity Logs tab ─────────────────────────────────────────
