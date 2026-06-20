@@ -35,9 +35,9 @@ let gisInited = false;
 let accessToken = sessionStorage.getItem('g_access_token') || null;
 
 const STATE = {
-  rootFolderId: '1WO6R9xIosr3kJE78nskoyQlu5wi546J1',
-  catalogFolderId: '1occCLepqu721QKo2rGulftSN0qwqTxLY',
-  imagesFolderId: '1J1fHtx_NLbG1pT-RtJpDVttpsHAAnxTa',
+  rootFolderId: '1QRtWBhQ2zD9DbdRL25i9dllssgiMnDH3',
+  catalogFolderId: '1Wp2uw_wu6prl1rgGjFY8WeCPA2deUixq',
+  imagesFolderId: '1Jvp9x_lNEMfgGQ46VaINpm7WTHzZ-yAY',
   userEmail: null,
 };
 
