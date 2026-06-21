@@ -1,9 +1,11 @@
+
 async function submitToGoogleForms(event) {
+    // Stop the page from refreshing immediately
     event.preventDefault();
     
-    // 1. Get your specific Google Form action URL
-    // It looks like: https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse
-    const formUrl = "https://docs.google.com/forms/d/e/15APs68u20ScuqRkONj9KNqhRfZyPe97gPs6lzO5wkDw/formResponse";
+    try {
+        // 1. Get your specific Google Form action URL
+       const formUrl = "https://docs.google.com/forms/d/e/15APs68u20ScuqRkONj9KNqhRfZyPe97gPs6lzO5wkDw/formResponse";
     
     // 2. Gather the data from your HTML inputs
     const name = document.getElementById('contactName').value;
@@ -18,15 +20,14 @@ async function submitToGoogleForms(event) {
     formData.append("entry.516630700", phone);   // Replace with your Phone entry ID
     formData.append("entry.1706491249", message); // Replace with your Message entry ID
 
-    try {
-        // Send the data silently
+        // 4. Send the data silently
         await fetch(formUrl, {
             method: "POST",
-            mode: "no-cors", // Crucial: This prevents the browser from blocking the request
+            mode: "no-cors", 
             body: formData
         });
 
-        // Show success message and clear form
+        // 5. Show success message and clear form
         alert("Thank you! Your enquiry has been received.");
         document.getElementById('contactForm').reset();
 
