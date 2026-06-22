@@ -4,8 +4,8 @@
 // Depends on drive.js, storage.js, whatsapp.js, upi.js, app.js
 // ============================================================
 
-let allProducts = []; // full list for the current view
-let filteredProducts = []; // after filters are applied
+let allProducts = []; 
+let filteredProducts = []; 
 
 // ── Category page init ────────────────────────────────────────
 
@@ -30,42 +30,22 @@ async function initCategoryPage() {
   renderProducts();
   hideLoader();
 
-  // ── Event listeners ───────────────────────────────────────
-  document
-    .getElementById("searchInput")
-    .addEventListener("input", applyFilters);
-  document
-    .getElementById("filterBrand")
-    .addEventListener("change", applyFilters);
-  document
-    .getElementById("filterFinish")
-    .addEventListener("change", applyFilters);
-  document
-    .getElementById("filterSize")
-    .addEventListener("change", applyFilters);
-  document
-    .getElementById("filterStock")
-    .addEventListener("change", applyFilters);
-  document
-    .getElementById("filterPriceMin")
-    .addEventListener("input", applyFilters);
-  document
-    .getElementById("filterPriceMax")
-    .addEventListener("input", applyFilters);
+  // Event listeners
+  document.getElementById("searchInput").addEventListener("input", applyFilters);
+  document.getElementById("filterBrand").addEventListener("change", applyFilters);
+  document.getElementById("filterFinish").addEventListener("change", applyFilters);
+  document.getElementById("filterSize").addEventListener("change", applyFilters);
+  document.getElementById("filterStock").addEventListener("change", applyFilters);
+  document.getElementById("filterPriceMin").addEventListener("input", applyFilters);
+  document.getElementById("filterPriceMax").addEventListener("input", applyFilters);
 }
 
 // ── Populate filter dropdowns ─────────────────────────────────
 
 function populateFilterOptions() {
-  const brands = [
-    ...new Set(allProducts.map((p) => p.brand).filter(Boolean)),
-  ].sort();
-  const finishes = [
-    ...new Set(allProducts.map((p) => p.finish).filter(Boolean)),
-  ].sort();
-  const sizes = [
-    ...new Set(allProducts.map((p) => p.size).filter(Boolean)),
-  ].sort();
+  const brands = [...new Set(allProducts.map((p) => p.brand).filter(Boolean))].sort();
+  const finishes = [...new Set(allProducts.map((p) => p.finish).filter(Boolean))].sort();
+  const sizes = [...new Set(allProducts.map((p) => p.size).filter(Boolean))].sort();
 
   const brandSel = document.getElementById("filterBrand");
   const finishSel = document.getElementById("filterFinish");
@@ -79,21 +59,15 @@ function populateFilterOptions() {
 // ── Apply all active filters ──────────────────────────────────
 
 function applyFilters() {
-  const term = document
-    .getElementById("searchInput")
-    .value.toLowerCase()
-    .trim();
+  const term = document.getElementById("searchInput").value.toLowerCase().trim();
   const brand = document.getElementById("filterBrand").value;
   const finish = document.getElementById("filterFinish").value;
   const size = document.getElementById("filterSize").value;
   const stock = document.getElementById("filterStock").value;
-  const priceMin =
-    parseFloat(document.getElementById("filterPriceMin").value) || 0;
-  const priceMax =
-    parseFloat(document.getElementById("filterPriceMax").value) || Infinity;
+  const priceMin = parseFloat(document.getElementById("filterPriceMin").value) || 0;
+  const priceMax = parseFloat(document.getElementById("filterPriceMax").value) || Infinity;
 
   filteredProducts = allProducts.filter((p) => {
-    // FIX: null-guard every field before calling .toLowerCase()
     const matchesSearch =
       !term ||
       (p.name || "").toLowerCase().includes(term) ||
@@ -106,23 +80,13 @@ function applyFilters() {
     const matchesStock = !stock || p.stockStatus === stock;
 
     const price = parseFloat(p.price) || 0;
-    const matchesPrice =
-      price >= priceMin && (priceMax === Infinity || price <= priceMax);
+    const matchesPrice = price >= priceMin && (priceMax === Infinity || price <= priceMax);
 
-    return (
-      matchesSearch &&
-      matchesBrand &&
-      matchesFinish &&
-      matchesSize &&
-      matchesStock &&
-      matchesPrice
-    );
+    return matchesSearch && matchesBrand && matchesFinish && matchesSize && matchesStock && matchesPrice;
   });
 
   renderProducts();
 }
-
-// ── Clear all filters ─────────────────────────────────────────
 
 function clearFilters() {
   document.getElementById("searchInput").value = "";
@@ -136,8 +100,6 @@ function clearFilters() {
 }
 
 // ── Safe onclick handlers ─────────────────────────────────────
-// Use data-id instead of embedding JSON in onclick attributes —
-// avoids XSS and crashes caused by quotes in product names.
 
 function handleQuote(id) {
   const p = filteredProducts.find((x) => x.internalId === id);
@@ -149,26 +111,30 @@ function handlePay(id) {
   if (p) payAdvance(p.price);
 }
 
-// ── Render product cards ──────────────────────────────────────
-
 function _stockStyle(status) {
   if (status === "Out of Stock") return "color:var(--danger);";
   if (status === "Limited Stock") return "color:var(--warning);";
   return "color:var(--success);";
 }
 
+// ── Render product cards ──────────────────────────────────────
+
 function renderProducts() {
   const grid = document.getElementById("productGrid");
+  if (!grid) return; 
+
   const count = filteredProducts.length;
-  document.getElementById("resultCount").innerText =
-    count === 0
-      ? "No products found"
-      : `${count} Product${count === 1 ? "" : "s"} Found`;
+  const resultCountEl = document.getElementById("resultCount");
+  
+  if (resultCountEl) {
+      resultCountEl.innerText = count === 0
+        ? "No products found"
+        : `${count} Product${count === 1 ? "" : "s"} Found`;
+  }
 
   if (!count) {
     grid.innerHTML = `
-            <div style="grid-column:1/-1; text-align:center;
-                        padding:3rem; color:var(--text-muted);">
+            <div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--text-muted);">
                 No products match your filters.
                 <br><br>
                 <button class="btn btn-outline" onclick="clearFilters()">Clear Filters</button>
@@ -176,54 +142,44 @@ function renderProducts() {
     return;
   }
 
-  grid.innerHTML = filteredProducts
-    .map(
-      (p) => `
+  grid.innerHTML = filteredProducts.map((p) => {
+        const imageId = (p.images && p.images.length > 0) ? p.images[0] : '';
+        const price = p.price || "0";
+        const unit = p.unit || "unit";
+        const stock = p.stockStatus || "In Stock";
+        const name = p.name || "Unnamed Product";
+        const brand = p.brand || "Brand";
+
+        const saleBanner = p.onSale ? `<div style="position:absolute; bottom:0; left:0; width:100%; background:rgba(220, 38, 38, 0.9); color:white; text-align:center; font-size:0.85rem; font-weight:bold; padding:4px 0; text-transform:uppercase;">On Sale</div>` : '';
+        const discountBadge = p.discount ? `<div style="position:absolute; top:10px; right:10px; background:var(--danger); color:white; font-weight:bold; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:0.85rem; z-index:2; box-shadow:0 2px 4px rgba(0,0,0,0.2);">-${p.discount}%</div>` : '';
+
+        return `
         <div class="card">
-            <a href="product.html?id=${p.internalId}"
-               style="text-decoration:none; color:inherit;
-                      display:flex; flex-direction:column; height:100%;">
-                <div class="card-img-container">
-                    <img src="https://drive.google.com/thumbnail?id=${p.images[0]}"
-                         class="card-img" alt="${p.name}"
-                         onerror="this.src='assets/placeholder.png'">
+            <a href="product.html?id=${p.internalId}" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">
+                <div class="card-img-container" style="position:relative; overflow:hidden;">
+                    ${discountBadge}
+                    <img src="https://drive.google.com/thumbnail?id=${imageId}" class="card-img" alt="${name}" onerror="this.src='assets/placeholder.png'">
+                    ${saleBanner}
                 </div>
                 <div class="card-body">
-                    <span class="badge badge-warning mb-2"
-                          style="align-self:flex-start;">${p.brand}</span>
-                    <h3 class="card-title">${p.name}</h3>
+                    <span class="badge badge-warning mb-2" style="align-self:flex-start;">${brand}</span>
+                    <h3 class="card-title">${name}</h3>
                     <div class="card-meta">
                         ${p.sku ? `<span>SKU: ${p.sku}</span>` : ""}
                         ${p.size ? `<span>${p.size}</span>` : ""}
                     </div>
                     <div class="card-price">
-                        &#8377;${p.price}
-                        <span style="font-size:0.875rem; font-weight:normal;
-                                     color:var(--text-muted);">/ ${p.unit}</span>
+                        &#8377;${price} <span style="font-size:0.875rem; font-weight:normal; color:var(--text-muted);">/ ${unit}</span>
                     </div>
-                    <p style="font-size:0.875rem; font-weight:600;
-                              margin-top:auto; ${_stockStyle(p.stockStatus)}">
-                        ${p.stockStatus || "In Stock"}
-                    </p>
+                    <p style="font-size:0.875rem; font-weight:600; margin-top:auto; ${_stockStyle(stock)}">${stock}</p>
                 </div>
             </a>
-            <!-- FIX: data-id instead of JSON.stringify in onclick -->
             <div class="card-actions" style="padding:0 1rem 1rem;">
-                <button class="btn btn-whatsapp"
-                        data-id="${p.internalId}"
-                        onclick="handleQuote(this.dataset.id)">
-                    💬 Quote
-                </button>
-                <button class="btn btn-primary"
-                        data-id="${p.internalId}"
-                        onclick="handlePay(this.dataset.id)">
-                    💳 Pay
-                </button>
+                <button class="btn btn-whatsapp" data-id="${p.internalId}" onclick="handleQuote(this.dataset.id)">💬 Quote</button>
+                <button class="btn btn-primary" data-id="${p.internalId}" onclick="handlePay(this.dataset.id)">💳 Pay</button>
             </div>
-        </div>
-    `,
-    )
-    .join("");
+        </div>`;
+      }).join("");
 }
 
 // ── Product detail page ───────────────────────────────────────
@@ -241,40 +197,41 @@ async function initProductPage() {
   const product = products.find((p) => p.internalId === id);
 
   if (!product) {
-    document.getElementById("productContainer").innerHTML =
-      '<div class="text-center section" style="color:var(--text-muted);">Product not found.</div>';
+    document.getElementById("productContainer").innerHTML = '<div class="text-center section" style="color:var(--text-muted);">Product not found.</div>';
     hideLoader();
     return;
   }
 
-  // Main image
   const mainImg = document.getElementById("mainImg");
-  mainImg.src = `https://drive.google.com/thumbnail?id=${product.images[0]}`;
+  const imageId = (product.images && product.images.length > 0) ? product.images[0] : '';
+  mainImg.src = `https://drive.google.com/thumbnail?id=${imageId}`;
 
-  // Thumbnails — highlight on click
-  document.getElementById("thumbnails").innerHTML = product.images
-    .map(
-      (imgId) => `
+  document.getElementById("thumbnails").innerHTML = (product.images || []).map((imgId) => `
         <img src="https://drive.google.com/thumbnail?id=${imgId}"
-             style="width:80px; height:80px; object-fit:cover; cursor:pointer;
-                    border-radius:var(--radius); border:2px solid var(--border);
-                    transition:border-color 0.2s;"
-             onmouseover="this.style.borderColor='var(--primary)'"
-             onmouseout="this.style.borderColor='var(--border)'"
-             onclick="document.getElementById('mainImg').src=this.src"
-             alt="${product.name}">
-    `,
-    )
-    .join("");
+             style="width:80px; height:80px; object-fit:cover; cursor:pointer; border-radius:var(--radius); border:2px solid var(--border); transition:border-color 0.2s;"
+             onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'"
+             onclick="document.getElementById('mainImg').src=this.src" alt="${product.name}">
+    `).join("");
 
-  // Header fields
-  document.getElementById("p_brand").innerText = product.brand;
-  document.getElementById("p_name").innerText = product.name;
-  document.getElementById("p_sku").innerText = product.sku;
-  document.getElementById("p_price").innerText = `\u20B9${product.price}`;
-  document.getElementById("p_unit").innerText = `/ ${product.unit}`;
+  const brandEl = document.getElementById("p_brand");
+  if (product.onSale) {
+      brandEl.innerHTML = `${product.brand || 'Brand'} <span class="badge badge-danger" style="margin-left: 10px;">🔥 ON SALE</span>`;
+  } else {
+      brandEl.innerText = product.brand || 'Brand';
+  }
 
-  // Specifications table — now includes Color
+  document.getElementById("p_name").innerText = product.name || 'Product';
+  document.getElementById("p_sku").innerText = product.sku || '';
+
+  const priceEl = document.getElementById("p_price");
+  if (product.discount) {
+      priceEl.innerHTML = `&#8377;${product.price || 0} <span style="color: var(--danger); font-size: 1rem; margin-left: 10px; vertical-align: middle;">(${product.discount}% OFF)</span>`;
+  } else {
+      priceEl.innerHTML = `&#8377;${product.price || 0}`;
+  }
+
+  document.getElementById("p_unit").innerText = `/ ${product.unit || 'unit'}`;
+
   const specs = [
     { label: "Category", value: product.category },
     { label: "Size", value: product.size },
@@ -285,19 +242,12 @@ async function initProductPage() {
     { label: "Status", value: product.stockStatus },
   ];
 
-  document.getElementById("p_specs").innerHTML = specs
-    .filter((s) => s.value)
-    .map(
-      (s) => `
-            <div style="display:flex; justify-content:space-between;
-                        padding:0.5rem 0; border-bottom:1px solid var(--border);">
+  document.getElementById("p_specs").innerHTML = specs.filter((s) => s.value).map((s) => `
+            <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border);">
                 <span class="text-muted">${s.label}</span>
                 <span style="font-weight:600;">${s.value}</span>
-            </div>`,
-    )
-    .join("");
+            </div>`).join("");
 
-  // Store globally for WhatsApp / UPI buttons
   window.currentProduct = product;
   hideLoader();
 }
