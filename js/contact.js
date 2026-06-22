@@ -1,24 +1,29 @@
-
-async function submitToGoogleForms(event) {
+// Renamed to match the onsubmit="submitContactForm(event)" in your HTML
+async function submitContactForm(event) {
     // Stop the page from refreshing immediately
     event.preventDefault();
     
     try {
         // 1. Get your specific Google Form action URL
-       const formUrl = "https://docs.google.com/forms/d/e/15APs68u20ScuqRkONj9KNqhRfZyPe97gPs6lzO5wkDw/formResponse";
-    
-    // 2. Gather the data from your HTML inputs
-    const name = document.getElementById('contactName').value;
-    const email = document.getElementById('contactEmail').value;
-    const phone = document.getElementById('contactPhone').value;
-    const message = document.getElementById('contactMessage').value;
+        const formUrl = "https://docs.google.com/forms/d/e/15APs68u20ScuqRkONj9KNqhRfZyPe97gPs6lzO5wkDw/formResponse";
+        
+        // 2. Gather the data using the exact IDs from your HTML (c_name, c_email, etc.)
+        const nameEl = document.getElementById('c_name');
+        const emailEl = document.getElementById('c_email');
+        const phoneEl = document.getElementById('c_phone');
+        const messageEl = document.getElementById('c_msg');
 
-    // 3. Map the data to your specific entry IDs from Step 1
-    const formData = new FormData();
-    formData.append("entry.2082304499", name);    // Replace with your Name entry ID
-    formData.append("entry.140362742", email);   // Replace with your Email entry ID
-    formData.append("entry.516630700", phone);   // Replace with your Phone entry ID
-    formData.append("entry.1706491249", message); // Replace with your Message entry ID
+        // Check if elements exist to prevent silent crashes
+        if (!nameEl || !phoneEl || !messageEl) {
+            throw new Error("One or more HTML input IDs are missing on the page.");
+        }
+
+        // 3. Map the data to your specific entry IDs
+        const formData = new FormData();
+        formData.append("entry.2082304499", nameEl.value);    
+        formData.append("entry.140362742", emailEl ? emailEl.value : "");  // Email is optional in your HTML 
+        formData.append("entry.516630700", phoneEl.value);   
+        formData.append("entry.1706491249", messageEl.value); 
 
         // 4. Send the data silently
         await fetch(formUrl, {
