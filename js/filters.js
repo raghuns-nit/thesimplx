@@ -150,8 +150,8 @@ function renderProducts() {
         const name = p.name || "Unnamed Product";
         const brand = p.brand || "Brand";
 
-        const saleBanner = p.onSale ? `<div style="position:absolute; bottom:0; left:0; width:100%; background:rgba(220, 38, 38, 0.9); color:white; text-align:center; font-size:0.85rem; font-weight:bold; padding:4px 0; text-transform:uppercase;">On Sale</div>` : '';
-        const discountBadge = p.discount ? `<div style="position:absolute; top:10px; right:10px; background:var(--danger); color:white; font-weight:bold; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:0.85rem; z-index:2; box-shadow:0 2px 4px rgba(0,0,0,0.2);">-${p.discount}%</div>` : '';
+        const saleBanner = p.onSale ? `<div style="position:absolute; bottom:0; left:0; width:100%; background:rgba(220, 38, 38, 0.9); color:white; text-align:center; font-size:0.85rem; font-weight:bold; padding:4px 0; text-transform:uppercase; z-index:10;">On Sale</div>` : '';
+        const discountBadge = p.discount ? `<div style="position:absolute; top:10px; right:10px; background:var(--danger); color:white; font-weight:bold; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:0.85rem; z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.2);">-${p.discount}%</div>` : '';
 
         return `
         <div class="card">
