@@ -5,7 +5,7 @@ async function submitContactForm(event) {
     
     try {
         // 1. Get your specific Google Form action URL
-        const formUrl = "https://docs.google.com/forms/d/e/15APs68u20ScuqRkONj9KNqhRfZyPe97gPs6lzO5wkDw/formResponse";
+        const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdCn3sVVcksHISTRmeXgKSqtR4Jzja1A514sl8zxdw-LRTuYA/formResponse";
         
         // 2. Gather the data using the exact IDs from your HTML (c_name, c_email, etc.)
         const nameEl = document.getElementById('c_name');
