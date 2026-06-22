@@ -38,11 +38,6 @@ function renderProductsTable() {
   tbody.innerHTML = productsData
     .map((p) => {
       const stock = p.stockStatus || "In Stock";
-      
-      // NEW: Generate the HTML for the Sale and Discount badges
-      const saleBadge = p.onSale ? `<span class="badge badge-danger" style="font-size:0.7rem; padding:0.15rem 0.4rem; margin-right:4px;">SALE</span>` : '';
-      const discountBadge = p.discount ? `<span class="badge badge-danger" style="font-size:0.7rem; padding:0.15rem 0.4rem;">-${p.discount}%</span>` : '';
-
       return `
         <tr>
             <td><strong style="font-family:monospace;">${p.sku}</strong></td>
@@ -55,10 +50,7 @@ function renderProductsTable() {
                 <br><small class="text-muted">${p.brand}</small>
             </td>
             <td>${p.category}</td>
-            <td>
-                &#8377;${p.price} <small class="text-muted">/ ${p.unit}</small>
-                ${(saleBadge || discountBadge) ? `<div style="margin-top: 4px;">${saleBadge}${discountBadge}</div>` : ''}
-            </td>
+            <td>&#8377;${p.price} <small class="text-muted">/ ${p.unit}</small></td>
             <td>
                 <span class="badge ${getStockBadgeClass(stock)}">${stock}</span>
             </td>
