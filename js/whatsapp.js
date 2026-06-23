@@ -48,7 +48,9 @@ async function submitWaLead() {
         return;
     }
 
-    // Give visual feedback that it is processing
+    // THE POPUP BYPASS TRICK: Open a blank trusted tab immediately upon click
+    const waTab = window.open('about:blank', '_blank');
+
     const btn = document.querySelector('#waLeadModal .btn-whatsapp');
     const originalText = btn.innerText;
     btn.innerText = "Connecting...";
@@ -57,21 +59,18 @@ async function submitWaLead() {
         // ---------------------------------------------------------
         // STEP A: SILENTLY LOG TO GOOGLE SHEETS
         // ---------------------------------------------------------
-        // ⚠️ REPLACE THIS URL WITH YOUR ACTUAL PUBLIC "1FAIp..." URL
         const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdCn3sVVcksHISTRmeXgKSqtR4Jzja1A514sl8zxdw-LRTuYA/formResponse";
         
-        // Build the automated message based on what they clicked
         let automatedMessage = "General WhatsApp Enquiry";
         if (waCurrentProduct) {
             automatedMessage = `WhatsApp Quote Request for: ${waCurrentProduct.name} (SKU: ${waCurrentProduct.sku})`;
         }
 
         const formData = new FormData();
-        // Use the exact same entry IDs from your contact.js file
-        formData.append("entry.2082304499", name);                   // Name
-        formData.append("entry.140362742", "N/A (WhatsApp Lead)");   // Email (Placeholder so sheet looks neat)
-        formData.append("entry.516630700", phone);                   // Phone
-        formData.append("entry.1706491249", automatedMessage);       // Message
+        formData.append("entry.2082304499", name);                   
+        formData.append("entry.140362742", "N/A (WhatsApp Lead)");   
+        formData.append("entry.516630700", phone);                   
+        formData.append("entry.1706491249", automatedMessage);       
 
         // Send the data invisibly
         await fetch(formUrl, {
@@ -81,18 +80,20 @@ async function submitWaLead() {
         });
 
         // ---------------------------------------------------------
-        // STEP B: REDIRECT TO ACTUAL WHATSAPP
+        // STEP B: SMART REDIRECT TO ACTUAL WHATSAPP
         // ---------------------------------------------------------
+        let waNumber = "919876543210"; // Fallback
         
-        // Fallback number just in case settings haven't loaded
-        let waNumber = "919876543210"; 
-        
-        // Grab the official WhatsApp number from your settings.json
-        if (window.globalSettings && window.globalSettings.whatsapp) {
-            waNumber = window.globalSettings.whatsapp.replace(/\D/g, ''); // Strip out any spaces or dashes
+        // FIX: Explicitly fetch the real number directly from your database
+        try {
+            const settings = await loadJson('settings.json');
+            if (settings && settings.whatsapp) {
+                waNumber = settings.whatsapp.replace(/\D/g, ''); // Strip spaces/dashes
+            }
+        } catch (err) {
+            console.warn("Could not load settings.json for WhatsApp number.");
         }
 
-        // Build the pre-filled chat text for the customer
         let chatText = `Hi, my name is ${name}. `;
         if (waCurrentProduct) {
             chatText += `I would like a quote for ${waCurrentProduct.name} (SKU: ${waCurrentProduct.sku}).`;
@@ -100,20 +101,24 @@ async function submitWaLead() {
             chatText += `I have a general enquiry about your products.`;
         }
 
-        // Create the official wa.me link
-        const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(chatText)}`;
-
-      // Cleanup the modal
-        closeWaModal();
+        // Detect if the user is on a mobile phone or a desktop computer
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
-        // Use location.href to bypass pop-up blockers seamlessly!
-        window.location.href = waUrl;
+        // Route Desktop users straight to WhatsApp Web to avoid the protocol error
+        const waUrl = isMobile 
+            ? `https://wa.me/${waNumber}?text=${encodeURIComponent(chatText)}`
+            : `https://web.whatsapp.com/send?phone=${waNumber}&text=${encodeURIComponent(chatText)}`;
+
+        // Load the correct WhatsApp URL into the tab we opened earlier
+        waTab.location.href = waUrl;
+        
+        closeWaModal();
 
     } catch (error) {
         console.error("Failed to log WhatsApp lead:", error);
+        waTab.close(); // Close the blank tab if it fails
         alert("There was an issue connecting. Please try again.");
     } finally {
-        // Reset the button text
         btn.innerText = originalText;
     }
 }
