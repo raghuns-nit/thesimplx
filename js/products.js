@@ -25,11 +25,56 @@ function getStockBadgeClass(status) {
   return "badge-success"; // 'In Stock' or undefined
 }
 
-Name					Gotra				Nakshatra				Rashi
-Raghunandan Somashekar	Vashista Gotra		Uttarashada Nakshatra	Makara Rashi
-Nandini Raghunandan		Vashista Gotra		Swati Nakshatra			Tula Rashi
-Anagha Raghunandan		Vashista Gotra		Revathi Nakshatra		Meena Rashi
-Nagabhushana T S		Bharadhwaja Gotra	Swati Nakshatra			Tula Rashi
+// ── Table render ──────────────────────────────────────────────
+
+function renderProductsTable() {
+  const tbody = document.getElementById("productsTableBody");
+  if (!productsData.length) {
+    tbody.innerHTML =
+      '<tr><td colspan="7" class="text-center" style="padding:2rem; color:var(--text-muted);">No products yet. Click "+ Add Product" to begin.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = productsData
+    .map((p) => {
+      const stock = p.stockStatus || "In Stock";
+      
+      // 1. Safety check for images (prevents admin panel crashes)
+      const imageId = (p.images && p.images.length > 0) ? p.images[0] : '';
+      
+      // 2. Generate the HTML for the Sale and Discount badges
+      const saleBadge = p.onSale ? `<span class="badge badge-danger" style="font-size:0.7rem; padding:0.15rem 0.4rem; margin-right:4px;">SALE</span>` : '';
+      const discountBadge = p.discount ? `<span class="badge badge-danger" style="font-size:0.7rem; padding:0.15rem 0.4rem;">-${p.discount}%</span>` : '';
+
+      return `
+        <tr>
+            <td><strong style="font-family:monospace;">${p.sku}</strong></td>
+            <td>
+                <img src="https://drive.google.com/thumbnail?id=${imageId}"
+                     class="img-thumbnail" alt="${p.name}" onerror="this.src='assets/placeholder.png'">
+            </td>
+            <td>
+                ${p.name}
+                <br><small class="text-muted">${p.brand}</small>
+            </td>
+            <td>${p.category}</td>
+            <td>
+                &#8377;${p.price} <small class="text-muted">/ ${p.unit}</small>
+                ${(saleBadge || discountBadge) ? `<div style="margin-top: 4px;">${saleBadge}${discountBadge}</div>` : ''}
+            </td>
+            <td>
+                <span class="badge ${getStockBadgeClass(stock)}">${stock}</span>
+            </td>
+            <td class="actions">
+                <button class="btn btn-outline" style="padding:0.25rem 0.5rem;"
+                        onclick="editProduct('${p.internalId}')">Edit</button>
+                <button class="btn btn-danger"  style="padding:0.25rem 0.5rem;"
+                        onclick="deleteProduct('${p.internalId}')">Delete</button>
+            </td>
+        </tr>`;
+    })
+    .join("");
+}
 
 // ── SKU prefix map ────────────────────────────────────────────
 
@@ -117,8 +162,8 @@ async function handleSaveProduct(e) {
     stockStatus: document.getElementById("prod_stockStatus").value,
     price: document.getElementById("prod_price").value,
     unit: document.getElementById("prod_unit").value.trim(),
-    onSale: document.getElementById("prod_onSale").checked, // NEW
-    discount: document.getElementById("prod_discount").value // NEW
+    onSale: document.getElementById("prod_onSale").checked, 
+    discount: document.getElementById("prod_discount").value 
   };
 
   try {
@@ -246,26 +291,4 @@ async function deleteProduct(internalId) {
     // 1. Remove Drive image folder  images/<slug>/products/<internalId>/
     await deleteProductFolder(internalId, p.category);
 
-    // 2. Remove from JSON
-    productsData = productsData.filter(
-      (prod) => prod.internalId !== internalId,
-    );
-    await saveJson("products.json", productsData);
-
-    // 3. Decrement category product count
-    const catIdx = categoriesData.findIndex((c) => c.slug === p.category);
-    if (catIdx > -1 && (categoriesData[catIdx].productCount || 0) > 0) {
-      categoriesData[catIdx].productCount--;
-      await saveJson("categories.json", categoriesData);
-      renderCategoriesTable();
-    }
-
-    await logActivity("DELETE_PRODUCT", "product", internalId);
-    renderProductsTable();
-  } catch (err) {
-    console.error("deleteProduct error:", err);
-    alert("Error deleting product. Check the browser console.");
-  } finally {
-    hideLoader();
-  }
-}
+    // 2. Remove
