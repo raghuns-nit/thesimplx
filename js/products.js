@@ -25,45 +25,11 @@ function getStockBadgeClass(status) {
   return "badge-success"; // 'In Stock' or undefined
 }
 
-// ── Table render ──────────────────────────────────────────────
-
-function renderProductsTable() {
-  const tbody = document.getElementById("productsTableBody");
-  if (!productsData.length) {
-    tbody.innerHTML =
-      '<tr><td colspan="7" class="text-center" style="padding:2rem; color:var(--text-muted);">No products yet. Click "+ Add Product" to begin.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = productsData
-    .map((p) => {
-      const stock = p.stockStatus || "In Stock";
-      return `
-        <tr>
-            <td><strong style="font-family:monospace;">${p.sku}</strong></td>
-            <td>
-                <img src="https://drive.google.com/thumbnail?id=${p.images[0]}"
-                     class="img-thumbnail" alt="${p.name}">
-            </td>
-            <td>
-                ${p.name}
-                <br><small class="text-muted">${p.brand}</small>
-            </td>
-            <td>${p.category}</td>
-            <td>&#8377;${p.price} <small class="text-muted">/ ${p.unit}</small></td>
-            <td>
-                <span class="badge ${getStockBadgeClass(stock)}">${stock}</span>
-            </td>
-            <td class="actions">
-                <button class="btn btn-outline" style="padding:0.25rem 0.5rem;"
-                        onclick="editProduct('${p.internalId}')">Edit</button>
-                <button class="btn btn-danger"  style="padding:0.25rem 0.5rem;"
-                        onclick="deleteProduct('${p.internalId}')">Delete</button>
-            </td>
-        </tr>`;
-    })
-    .join("");
-}
+Name					Gotra				Nakshatra				Rashi
+Raghunandan Somashekar	Vashista Gotra		Uttarashada Nakshatra	Makara Rashi
+Nandini Raghunandan		Vashista Gotra		Swati Nakshatra			Tula Rashi
+Anagha Raghunandan		Vashista Gotra		Revathi Nakshatra		Meena Rashi
+Nagabhushana T S		Bharadhwaja Gotra	Swati Nakshatra			Tula Rashi
 
 // ── SKU prefix map ────────────────────────────────────────────
 
