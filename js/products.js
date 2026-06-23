@@ -120,9 +120,9 @@ function editProduct(internalId) {
   if (hintEl)
     hintEl.innerText = "(optional — leave empty to keep existing images)";
 
-  document.getElementById("prod_name").value = p.name;
-  document.getElementById("prod_category").value = p.category;
-  document.getElementById("prod_brand").value = p.brand;
+  document.getElementById("prod_name").value = p.name || "";
+  document.getElementById("prod_category").value = p.category || "";
+  document.getElementById("prod_brand").value = p.brand || "";
   document.getElementById("prod_size").value = p.size || "";
   document.getElementById("prod_finish").value = p.finish || "";
   document.getElementById("prod_color").value = p.color || "";
@@ -130,8 +130,8 @@ function editProduct(internalId) {
   document.getElementById("prod_material").value = p.material || "";
   document.getElementById("prod_stockStatus").value =
     p.stockStatus || "In Stock";
-  document.getElementById("prod_price").value = p.price;
-  document.getElementById("prod_unit").value = p.unit;
+  document.getElementById("prod_price").value = p.price || "";
+  document.getElementById("prod_unit").value = p.unit || "";
   document.getElementById("prod_onSale").checked = p.onSale || false;
   document.getElementById("prod_discount").value = p.discount || "";
 
@@ -291,4 +291,26 @@ async function deleteProduct(internalId) {
     // 1. Remove Drive image folder  images/<slug>/products/<internalId>/
     await deleteProductFolder(internalId, p.category);
 
-    // 2. Remove
+    // 2. Remove from JSON
+    productsData = productsData.filter(
+      (prod) => prod.internalId !== internalId,
+    );
+    await saveJson("products.json", productsData);
+
+    // 3. Decrement category product count
+    const catIdx = categoriesData.findIndex((c) => c.slug === p.category);
+    if (catIdx > -1 && (categoriesData[catIdx].productCount || 0) > 0) {
+      categoriesData[catIdx].productCount--;
+      await saveJson("categories.json", categoriesData);
+      renderCategoriesTable();
+    }
+
+    await logActivity("DELETE_PRODUCT", "product", internalId);
+    renderProductsTable();
+  } catch (err) {
+    console.error("deleteProduct error:", err);
+    alert("Error deleting product. Check the browser console.");
+  } finally {
+    hideLoader();
+  }
+}
