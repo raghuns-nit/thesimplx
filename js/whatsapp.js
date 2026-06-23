@@ -103,11 +103,11 @@ async function submitWaLead() {
         // Create the official wa.me link
         const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(chatText)}`;
 
-        // Open WhatsApp in a new tab
-        window.open(waUrl, '_blank');
-        
-        // Cleanup the modal
+      // Cleanup the modal
         closeWaModal();
+        
+        // Use location.href to bypass pop-up blockers seamlessly!
+        window.location.href = waUrl;
 
     } catch (error) {
         console.error("Failed to log WhatsApp lead:", error);
