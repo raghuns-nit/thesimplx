@@ -32,6 +32,9 @@
                 <a class="admin-nav-item" onclick="switchTab('activity')"
                     >📋 Activity Logs</a
                 >
+                <a class="admin-nav-item" href="migrate.html"
+                    >🔄 Data Migration</a
+                >
             </nav>
             <div class="admin-user" id="adminUserEmail">Loading...</div>
         </aside>
@@ -207,7 +210,7 @@
                                         <label>Company Name *</label>
                                         <input
                                             type="text"
-                                            id="set_companyName"
+                                            id="set_company_name"
                                             required
                                             placeholder="e.g., Simplx World"
                                         />
@@ -273,7 +276,7 @@
                                         <label>UPI ID</label>
                                         <input
                                             type="text"
-                                            id="set_upiId"
+                                            id="set_upi_id"
                                             placeholder="merchant@upi"
                                         />
                                     </div>
@@ -598,24 +601,12 @@
         </div>
         <!-- Google APIs -->
         <!-- Local scripts first -->
-       <script src="js/drive.js?v=7"></script>
-        <script src="js/storage.js?v=7"></script>
-        <script src="js/auth.js?v=7"></script>
-        <script src="js/activity.js?v=7"></script>
-        <script src="js/categories.js?v=7"></script>
-        <script src="js/products.js?v=7"></script>
-        <script src="js/admin.js?v=7"></script>
-        <script
-            async
-            src="https://accounts.google.com/gsi/client"
-            onload="gisLoaded()"
-        ></script>
-        <script
-            async
-            src="https://apis.google.com/js/api.js"
-            onload="gapiLoaded()"
-        ></script>
-    </body>
-</html>
+       <script src="js/supabase-client.js?v=8"></script>
+        <script src="js/storage.js?v=8"></script>
+        <script src="js/auth.js?v=8"></script>
+        <script src="js/activity.js?v=8"></script>
+        <script src="js/categories.js?v=8"></script>
+        <script src="js/products.js?v=8"></script>
+        <script src="js/admin.js?v=8"></script>
     </body>
 </html>

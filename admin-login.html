@@ -7,26 +7,48 @@
         <meta http-equiv="Pragma" content="no-cache" />
         <meta http-equiv="Expires" content="0" />
         <title>Admin Login - Simplx World</title>
-        <link rel="stylesheet" href="css/style.css?v=2" />
-        <link rel="stylesheet" href="css/admin.css?v=2" />
+        <link rel="stylesheet" href="css/style.css?v=3" />
+        <link rel="stylesheet" href="css/admin.css?v=3" />
     </head>
     <body class="login-page">
         <div class="login-card">
             <img class="login-logo mb-4" src="logo.svg" alt="Simplx World" />
             <h1 class="mb-2">Admin Portal</h1>
             <p class="text-muted mb-8">
-                Sign in with your authorized Google Account to access the CMS.
+                Sign in with your admin email and password.
             </p>
 
-            <button
-                id="loginBtn"
-                class="btn btn-primary btn-block"
-                style="padding: 0.75rem; font-size: 1rem"
-                onclick="handleLogin()"
-                disabled
-            >
-                ⏳ Loading Google Sign-In…
-            </button>
+            <form id="loginForm" onsubmit="return false;">
+                <div class="mb-4">
+                    <input
+                        type="email"
+                        id="loginEmail"
+                        class="form-control"
+                        placeholder="Admin email"
+                        required
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:var(--radius); font-size:1rem;"
+                    />
+                </div>
+                <div class="mb-4">
+                    <input
+                        type="password"
+                        id="loginPassword"
+                        class="form-control"
+                        placeholder="Password"
+                        required
+                        style="width:100%; padding:0.75rem; border:1px solid var(--border); border-radius:var(--radius); font-size:1rem;"
+                    />
+                </div>
+                <button
+                    id="loginBtn"
+                    type="submit"
+                    class="btn btn-primary btn-block"
+                    style="padding: 0.75rem; font-size: 1rem"
+                    onclick="doLogin(event)"
+                >
+                    Sign In
+                </button>
+            </form>
 
             <p
                 id="errorMsg"
@@ -39,104 +61,37 @@
             </div>
         </div>
 
-        <!--
-        FIX: Local scripts MUST load before the Google scripts.
-        The Google scripts call gisLoaded() / gapiLoaded() in their
-        onload callbacks.  Those functions are defined in drive.js.
-        If drive.js hasn't loaded yet the callbacks throw a silent
-        ReferenceError, tokenClient is never created, and the login
-        button does nothing.
-    -->
-        <script src="js/drive.js?v=2"></script>
-        <script src="js/storage.js?v=2"></script>
-        <script src="js/auth.js?v=2"></script>
-        <script src="js/activity.js?v=2"></script>
-
-        <!--
-        Page-specific onAppReady — defined here (after local scripts)
-        so it exists before checkAuthAndInit() calls it.
-    -->
+        <script src="js/supabase-client.js?v=3"></script>
+        <script src="js/storage.js?v=3"></script>
+        <script src="js/auth.js?v=3"></script>
+        <script src="js/activity.js?v=3"></script>
         <script>
-            window.onAppReady = async function () {
-                console.log('[LoginPage] onAppReady called, accessToken =', !!accessToken);
-                
-                if (!accessToken) {
-                    console.log('[LoginPage] No token yet — waiting for user to click');
+            async function doLogin(event) {
+                event.preventDefault();
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
+
+                if (!email || !password) {
+                    alert('Please enter your email and password.');
                     return;
                 }
 
-                console.log('[LoginPage] Token acquired, validating session...');
-                showLoader("Validating your account…");
-                const isValid = await validateAdminSession();
-                hideLoader();
-
-                if (isValid) {
-                    console.log('[LoginPage] ✅ Session valid, logging activity and redirecting...');
-                    await logActivity("LOGIN", "user", STATE.userEmail);
-                    window.location.href = "admin.html?v=2";
+                const result = await handleLogin(email, password);
+                if (result.success) {
+                    await logActivity('LOGIN', 'user', STATE.userEmail);
+                    window.location.href = 'admin.html?v=3';
                 } else {
-                    console.log('[LoginPage] ❌ Session invalid — account not authorized');
-                    const errEl = document.getElementById("errorMsg");
-                    errEl.innerText =
-                        "Unauthorized account. Contact the Super Admin.";
-                    errEl.style.display = "block";
-                    // Revoke the token so the user can try again with a different account
-                    const tok = accessToken;
-                    accessToken = null;
-                    sessionStorage.removeItem('g_access_token'); // Clear from storage
-                    if (tok) google.accounts.oauth2.revoke(tok, () => {});
-                    // Re-enable button
-                    const btn = document.getElementById("loginBtn");
-                    btn.disabled = false;
-                    btn.innerText = "Sign in with Google";
+                    const errEl = document.getElementById('errorMsg');
+                    errEl.innerText = result.message || 'Login failed.';
+                    errEl.style.display = 'block';
                 }
-            };
-
-            /**
-             * Override handleLogin to guard against tokenClient not being
-             * ready yet (e.g. user clicks extremely fast before async
-             * Google scripts finish loading).
-             */
-            function handleLogin() {
-                console.log('[LoginPage] handleLogin clicked, tokenClient ready?', !!tokenClient);
-                if (!tokenClient) {
-                    // Scripts still loading — retry in 300 ms
-                    const btn = document.getElementById("loginBtn");
-                    btn.innerText = "⏳ Still loading, please wait…";
-                    console.log('[LoginPage] tokenClient not ready, retrying in 300ms...');
-                    setTimeout(handleLogin, 300);
-                    return;
-                }
-                console.log('[LoginPage] Requesting access token...');
-                tokenClient.requestAccessToken({ prompt: "select_account" });
             }
 
-            /**
-             * Called from drive.js gisLoaded() once tokenClient is ready.
-             * Enables the login button.
-             */
-            function onGisReady() {
-                console.log('[LoginPage] onGisReady fired — Google Identity Services ready');
-                const btn = document.getElementById("loginBtn");
-                btn.disabled = false;
-                btn.innerText = "🔑 Sign in with Google";
-            }
+            // If already logged in, redirect to dashboard
+            window.addEventListener('supabaseReady', async function () {
+                const valid = await validateAdminSession();
+                if (valid) window.location.href = 'admin.html?v=3';
+            });
         </script>
-
-        <!--
-        FIX: async so Google scripts load in parallel without blocking.
-        Their onload callbacks (gisLoaded / gapiLoaded) are now defined
-        in drive.js which is already loaded above.
-    -->
-        <script
-            async
-            src="https://accounts.google.com/gsi/client"
-            onload="gisLoaded()"
-        ></script>
-        <script
-            async
-            src="https://apis.google.com/js/api.js"
-            onload="gapiLoaded()"
-        ></script>
     </body>
 </html>

@@ -1,95 +1,75 @@
 // ============================================================
-// auth.js — Google OAuth login / logout / session validation
-// Depends on drive.js (accessToken, STATE, showLoader, hideLoader, initDriveStructure)
-//           storage.js (loadJson, saveJson)
+// auth.js — Supabase email/password login, logout, session check
+// Replaces Google OAuth flow.
+// Depends on supabase-client.js (window.sb), storage.js (showLoader, hideLoader)
 // ============================================================
 
-/** Prompt the user to sign in with Google. */
-async function handleLogin() {
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+// Global state kept for backward compatibility with other scripts
+const STATE = {
+  userEmail: null,
+  rootFolderId: null,
+  catalogFolderId: null,
+  imagesFolderId: null,
+};
+let accessToken = null; // kept for any code that checks this flag
+
+// ── Login ─────────────────────────────────────────────────────
+
+async function handleLogin(email, password) {
+  showLoader('Signing in...');
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    accessToken = data.session?.access_token || 'supabase';
+    STATE.userEmail = data.user?.email;
+    hideLoader();
+    return { success: true };
+  } catch (err) {
+    hideLoader();
+    return { success: false, message: err.message || 'Login failed' };
+  }
 }
 
-/**
- * Sign the current admin out.
- * FIX: capture the token BEFORE nulling it — revoke() needs the actual value.
- */
-function handleLogout() {
-    const token = accessToken;   // capture first
-    accessToken        = null;
-    STATE.userEmail    = null;
+// ── Sign up (first admin) ─────────────────────────────────────
 
-    if (token) {
-        google.accounts.oauth2.revoke(token, () => {
-            window.location.href = 'admin-login.html';
-        });
-    } else {
-        window.location.href = 'admin-login.html';
-    }
+async function handleSignUp(email, password) {
+  showLoader('Creating account...');
+  try {
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) throw error;
+    hideLoader();
+    return { success: true, user: data.user };
+  } catch (err) {
+    hideLoader();
+    return { success: false, message: err.message || 'Sign up failed' };
+  }
 }
 
-/**
- * Check that the signed-in Google account is in admins.json.
- * On the very first login (admins.json is empty) the current user
- * is automatically registered as super_admin.
- * Returns true if access is granted, false otherwise.
- */
+// ── Logout ────────────────────────────────────────────────────
+
+async function handleLogout() {
+  await sb.auth.signOut();
+  accessToken = null;
+  STATE.userEmail = null;
+  window.location.href = 'admin-login.html';
+}
+
+// ── Session validation ───────────────────────────────────────
+
 async function validateAdminSession() {
-    console.log('[auth.js] validateAdminSession() starting...');
-    if (!accessToken) {
-        console.log('[auth.js] ❌ No access token');
-        return false;
-    }
+  try {
+    const { data: { session }, error } = await sb.auth.getSession();
+    if (!session || error) return false;
 
-    showLoader('Validating session...');
-    try {
-        // 0. Initialize Drive structure if not already done (needed for login page)
-        console.log('[auth.js] STATE.catalogFolderId =', STATE.catalogFolderId);
-        if (!STATE.catalogFolderId) {
-            console.log('[auth.js] Drive structure not initialized, initializing now...');
-            // Call initDriveStructure from drive.js
-            await initDriveStructure();
-            console.log('[auth.js] Drive structure initialized, STATE:', STATE);
-        }
+    // Refresh user info
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return false;
 
-        // 1. Fetch the signed-in user's email from Google
-        console.log('[auth.js] Fetching user info from Google...');
-        const res      = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        const userInfo = await res.json();
-        STATE.userEmail = userInfo.email;
-        console.log('[auth.js] User email:', STATE.userEmail);
-
-        // 2. Load the admin list from Drive
-        console.log('[auth.js] Loading admins.json from Drive...');
-        let admins = await loadJson('admins.json');
-        admins = admins || [];   // defensive: loadJson may return null on error
-        console.log('[auth.js] Found', admins.length, 'admins');
-
-        // 3. First-run bootstrap — register the first user as super_admin
-        if (admins.length === 0) {
-            console.log('[auth.js] No admins found, registering first user as super_admin...');
-            admins.push({ email: STATE.userEmail, role: 'super_admin', enabled: true });
-            await saveJson('admins.json', admins);
-            console.log('[auth.js] ✅ First user registered as super_admin');
-            return true;
-        }
-
-        // 4. Check the admin list
-        console.log('[auth.js] Checking if user is in admin list...');
-        const found = admins.find(a => a.email === STATE.userEmail && a.enabled === true);
-        if (found) {
-            console.log('[auth.js] ✅ User is authorized admin:', found.role);
-            return true;
-        } else {
-            console.log('[auth.js] ❌ User not in admin list or disabled');
-            return false;
-        }
-
-    } catch (e) {
-        console.error('[auth.js] ❌ validateAdminSession error:', e);
-        return false;
-    } finally {
-        hideLoader();
-    }
+    accessToken = session.access_token;
+    STATE.userEmail = user.email;
+    return true;
+  } catch (e) {
+    console.error('validateAdminSession:', e);
+    return false;
+  }
 }

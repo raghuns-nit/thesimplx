@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Data Migration - Simplx World</title>
+        <link rel="stylesheet" href="css/style.css?v=2" />
+        <link rel="stylesheet" href="css/admin.css?v=2" />
+    </head>
+    <body class="login-page">
+        <div class="login-card" style="max-width: 600px;">
+            <img class="login-logo mb-4" src="logo.svg" alt="Simplx World" style="width: 200px;" />
+            <h1 class="mb-2">Data Migration</h1>
+            <p class="text-muted mb-8">
+                Import your existing Google Drive data (categories, products, settings) into the new Supabase database.
+                You must be signed in as an admin to run this.
+            </p>
+
+            <div id="migrationStatus" style="display:none; padding:1rem; border-radius:var(--radius); margin-bottom:1rem; background:var(--bg-accent); font-size:0.875rem;"></div>
+
+            <div id="migrationResults" style="display:none; margin-bottom:1rem;">
+                <h3 style="margin-bottom:0.5rem;">Migration Results</h3>
+                <div id="migrationLog" style="max-height:300px; overflow-y:auto; font-size:0.8rem; font-family:monospace; padding:0.75rem; background:var(--bg-accent); border-radius:var(--radius);"></div>
+            </div>
+
+            <div id="step1" style="margin-bottom: 1rem;">
+                <p style="font-weight:600; margin-bottom:0.5rem;">Step 1: Sign in with Google to access your Drive data</p>
+                <button id="googleAuthBtn" class="btn btn-primary btn-block" style="padding:0.75rem;" onclick="authorizeGoogle()">
+                    Connect Google Drive
+                </button>
+            </div>
+
+            <div id="step2" style="display:none; margin-bottom: 1rem;">
+                <p style="font-weight:600; margin-bottom:0.5rem;">Step 2: Migrate data to Supabase</p>
+                <button id="migrateBtn" class="btn btn-primary btn-block" style="padding:0.75rem;" onclick="runMigration()">
+                    Start Migration
+                </button>
+            </div>
+
+            <div id="step3" style="display:none; margin-bottom: 1rem;">
+                <p style="font-weight:600; margin-bottom:0.5rem;">Step 3: Review results</p>
+                <a href="admin.html" class="btn btn-outline btn-block" style="padding:0.75rem; display:block; text-align:center;">
+                    Go to Admin Dashboard
+                </a>
+            </div>
+
+            <div class="mt-8" style="font-size: 0.875rem">
+                <a href="admin.html">&larr; Back to Admin Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Google Drive scripts for reading old data -->
+        <script src="https://apis.google.com/js/api.js"></script>
+        <!-- Supabase scripts for writing new data -->
+        <script src="js/supabase-client.js?v=2"></script>
+        <script src="js/storage.js?v=2"></script>
+        <script src="js/auth.js?v=2"></script>
+
+        <script>
+            // ── Google Drive config (from old drive.js) ──────────────
+            const GOOGLE_CLIENT_ID = '935530990067-6q2m06a3p0q6g8r5e8l4v3q4n5o0p1r2.apps.googleusercontent.com';
+            const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
+            const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+            let gAccessToken = null;
+            let gRootFolderId = null;
+            let gCatalogFolderId = null;
+
+            function authorizeGoogle() {
+                const btn = document.getElementById('googleAuthBtn');
+                btn.innerText = 'Opening Google sign-in...';
+                btn.disabled = true;
+
+                const tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: SCOPES,
+                    callback: async (response) => {
+                        if (response.access_token) {
+                            gAccessToken = response.access_token;
+                            await findDriveFolders();
+                        } else {
+                            setStatus('Google authorization failed.', 'error');
+                            btn.innerText = 'Connect Google Drive';
+                            btn.disabled = false;
+                        }
+                    }
+                });
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            }
+
+            async function findDriveFolders() {
+                setStatus('Searching for SimplxWorld folder in Google Drive...', 'info');
+                try {
+                    gapi.client.setToken({ access_token: gAccessToken });
+                    gapi.load('client', async () => {
+                        await gapi.client.init({
+                            discoveryDocs: DISCOVERY_DOCS,
+                        });
+
+                        // Find root folder
+                        const rootRes = await gapi.client.drive.files.list({
+                            q: "name='SimplxWorld' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                            fields: 'files(id, name)',
+                        });
+                        const rootFiles = rootRes.result.files || [];
+                        if (rootFiles.length === 0) {
+                            // Try old name
+                            const oldRes = await gapi.client.drive.files.list({
+                                q: "name='theSimpLx' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                                fields: 'files(id, name)',
+                            });
+                            const oldFiles = oldRes.result.files || [];
+                            if (oldFiles.length === 0) {
+                                setStatus('No SimplxWorld or theSimpLx folder found in Google Drive. No data to migrate.', 'error');
+                                return;
+                            }
+                            gRootFolderId = oldFiles[0].id;
+                        } else {
+                            gRootFolderId = rootFiles[0].id;
+                        }
+
+                        // Find catalog subfolder
+                        const catRes = await gapi.client.drive.files.list({
+                            q: `name='catalog' and parents in '${gRootFolderId}' and trashed=false`,
+                            fields: 'files(id, name)',
+                        });
+                        const catFiles = catRes.result.files || [];
+                        if (catFiles.length > 0) {
+                            gCatalogFolderId = catFiles[0].id;
+                        } else {
+                            // Maybe files are directly in root
+                            gCatalogFolderId = gRootFolderId;
+                        }
+
+                        setStatus('Connected to Google Drive. Ready to migrate.', 'success');
+                        document.getElementById('step1').style.display = 'none';
+                        document.getElementById('step2').style.display = '';
+                    });
+                } catch (e) {
+                    console.error('findDriveFolders error:', e);
+                    setStatus('Error connecting to Google Drive: ' + e.message, 'error');
+                }
+            }
+
+            // ── Drive JSON read helper ────────────────────────────────
+            async function readDriveJson(filename) {
+                try {
+                    const res = await gapi.client.drive.files.list({
+                        q: `name='${filename}' and parents in '${gCatalogFolderId}' and trashed=false`,
+                        fields: 'files(id, name)',
+                    });
+                    const files = res.result.files || [];
+                    if (files.length === 0) return null;
+
+                    const fileRes = await gapi.client.drive.files.get({
+                        fileId: files[0].id,
+                        alt: 'media',
+                    });
+                    return fileRes.result;
+                } catch (e) {
+                    console.error('readDriveJson error for ' + filename + ':', e);
+                    return null;
+                }
+            }
+
+            // ── Migration ─────────────────────────────────────────────
+            async function runMigration() {
+                const btn = document.getElementById('migrateBtn');
+                btn.disabled = true;
+                btn.innerText = 'Migrating...';
+                document.getElementById('migrationResults').style.display = '';
+                const logEl = document.getElementById('migrationLog');
+                logEl.innerHTML = '';
+
+                function log(msg, type) {
+                    const color = type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--text-main)';
+                    logEl.innerHTML += `<div style="color:${color}; margin-bottom:2px;">${msg}</div>`;
+                    logEl.scrollTop = logEl.scrollHeight;
+                }
+
+                // Verify Supabase auth
+                const valid = await validateAdminSession();
+                if (!valid) {
+                    log('ERROR: You must be signed in as admin. Redirecting to login...', 'error');
+                    setTimeout(() => window.location.href = 'admin-login.html', 2000);
+                    return;
+                }
+
+                log('Starting migration...', 'info');
+
+                // ── Migrate Settings ──────────────────────────────────
+                log('Reading settings.json from Drive...', 'info');
+                const oldSettings = await readDriveJson('settings.json');
+                if (oldSettings && typeof oldSettings === 'object') {
+                    const newSettings = {
+                        company_name: oldSettings.companyName || 'Simplx World',
+                        phone: oldSettings.phone || null,
+                        whatsapp: oldSettings.whatsapp || null,
+                        email: oldSettings.email || null,
+                        address: oldSettings.address || null,
+                        upi_id: oldSettings.upiId || null,
+                    };
+                    const ok = await saveSettings(newSettings);
+                    log(ok ? 'Settings migrated successfully.' : 'Settings migration failed.', ok ? 'success' : 'error');
+                } else {
+                    log('No settings.json found — skipping.', 'info');
+                }
+
+                // ── Migrate Categories ────────────────────────────────
+                log('Reading categories.json from Drive...', 'info');
+                const oldCategories = await readDriveJson('categories.json');
+                const categoryMap = {}; // oldId → newId
+
+                if (oldCategories && Array.isArray(oldCategories) && oldCategories.length > 0) {
+                    for (const c of oldCategories) {
+                        const imageUrl = c.imageId
+                            ? `https://drive.google.com/thumbnail?id=${c.imageId}`
+                            : null;
+
+                        const { data, error } = await sb.from('categories').upsert({
+                            name: c.name,
+                            slug: c.slug,
+                            description: c.description || null,
+                            image_url: imageUrl,
+                            sort_order: c.order || 0,
+                        }, { onConflict: 'slug' }).select().single();
+
+                        if (error) {
+                            log(`Category "${c.name}" failed: ${error.message}`, 'error');
+                        } else {
+                            categoryMap[c.slug] = data.id;
+                            log(`Category "${c.name}" migrated.`, 'success');
+                        }
+                    }
+                } else {
+                    log('No categories.json found — skipping.', 'info');
+                }
+
+                // ── Migrate Products ──────────────────────────────────
+                log('Reading products.json from Drive...', 'info');
+                const oldProducts = await readDriveJson('products.json');
+
+                if (oldProducts && Array.isArray(oldProducts) && oldProducts.length > 0) {
+                    let successCount = 0;
+                    let errorCount = 0;
+
+                    for (const p of oldProducts) {
+                        // Map old category slug to new category_id
+                        const categoryId = categoryMap[p.category];
+                        if (!categoryId) {
+                            log(`Product "${p.name}" skipped — category "${p.category}" not found.`, 'error');
+                            errorCount++;
+                            continue;
+                        }
+
+                        // Convert Drive image IDs to URLs
+                        const imageUrls = (p.images || []).map(id =>
+                            `https://drive.google.com/thumbnail?id=${id}`
+                        );
+
+                        // Build specifications from old fields
+                        const specs = {};
+                        if (p.color) specs.color = p.color;
+                        if (p.thickness) specs.thickness = p.thickness;
+                        if (p.material) specs.material = p.material;
+
+                        const { error } = await sb.from('products').insert({
+                            category_id: categoryId,
+                            name: p.name,
+                            brand: p.brand || null,
+                            sku: p.sku || null,
+                            price: p.price ? parseFloat(p.price) : null,
+                            unit: p.unit || null,
+                            size: p.size || null,
+                            finish: p.finish || null,
+                            stock_status: p.stockStatus || 'In Stock',
+                            description: null,
+                            image_urls: imageUrls,
+                            specifications: specs,
+                            sort_order: 0,
+                        });
+
+                        if (error) {
+                            log(`Product "${p.name}" failed: ${error.message}`, 'error');
+                            errorCount++;
+                        } else {
+                            successCount++;
+                        }
+                    }
+                    log(`Products migrated: ${successCount} success, ${errorCount} errors.`, successCount > 0 ? 'success' : 'error');
+                } else {
+                    log('No products.json found — skipping.', 'info');
+                }
+
+                // ── Migrate Activity Logs ─────────────────────────────
+                log('Reading activity_logs.json from Drive...', 'info');
+                const oldLogs = await readDriveJson('activity_logs.json');
+                if (oldLogs && Array.isArray(oldLogs) && oldLogs.length > 0) {
+                    let logCount = 0;
+                    for (const l of oldLogs.slice(0, 500)) {
+                        const { error } = await sb.from('activity_logs').insert({
+                            username: l.username || 'system',
+                            action: l.action || 'UNKNOWN',
+                            entity_type: l.entityType || null,
+                            entity_id: l.entityId || null,
+                        });
+                        if (!error) logCount++;
+                    }
+                    log(`Activity logs migrated: ${logCount} entries.`, 'success');
+                } else {
+                    log('No activity_logs.json found — skipping.', 'info');
+                }
+
+                log('Migration complete!', 'success');
+                document.getElementById('step2').style.display = 'none';
+                document.getElementById('step3').style.display = '';
+                btn.disabled = false;
+                btn.innerText = 'Start Migration';
+            }
+
+            function setStatus(msg, type) {
+                const el = document.getElementById('migrationStatus');
+                el.style.display = '';
+                el.innerText = msg;
+                el.style.color = type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--text-main)';
+            }
+
+            // Check if already signed in to Supabase
+            window.addEventListener('supabaseReady', async function () {
+                const valid = await validateAdminSession();
+                if (!valid) {
+                    setStatus('You must sign in to the admin dashboard first before running migration.', 'error');
+                }
+            });
+        </script>
+        <script async src="https://accounts.google.com/gsi/client"></script>
+    </body>
+</html>

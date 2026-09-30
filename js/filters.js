@@ -1,28 +1,35 @@
 // ============================================================
 // filters.js — Client-side search, filtering, and product/
 //              product-detail page rendering.
-// Depends on drive.js, storage.js, whatsapp.js, upi.js, app.js
+// Depends on supabase-client.js, storage.js, whatsapp.js, upi.js, app.js
 // ============================================================
 
-let allProducts = []; 
-let filteredProducts = []; 
+let allProducts = [];
+let filteredProducts = [];
 
 // ── Category page init ────────────────────────────────────────
 
 async function initCategoryPage() {
-  showLoader("Loading Products…");
+  showLoader('Loading Products…');
 
   const params = new URLSearchParams(window.location.search);
-  const catSlug = params.get("slug");
+  const catSlug = params.get('slug');
 
-  const all = await loadJson("products.json");
-  allProducts = Array.isArray(all) ? all : [];
+  // Load categories to find the right one
+  const cats = await loadCategories();
+  let targetCat = null;
 
   if (catSlug) {
-    allProducts = allProducts.filter((p) => p.category === catSlug);
-    const cats = await loadJson("categories.json");
-    const catObj = cats.find((c) => c.slug === catSlug);
-    if (catObj) document.getElementById("pageTitle").innerText = catObj.name;
+    targetCat = cats.find((c) => c.slug === catSlug);
+    if (targetCat) {
+      const titleEl = document.getElementById('pageTitle');
+      if (titleEl) titleEl.innerText = targetCat.name;
+      allProducts = await loadProductsByCategory(targetCat.id);
+    } else {
+      allProducts = [];
+    }
+  } else {
+    allProducts = await loadProducts();
   }
 
   filteredProducts = [...allProducts];
@@ -31,13 +38,20 @@ async function initCategoryPage() {
   hideLoader();
 
   // Event listeners
-  document.getElementById("searchInput").addEventListener("input", applyFilters);
-  document.getElementById("filterBrand").addEventListener("change", applyFilters);
-  document.getElementById("filterFinish").addEventListener("change", applyFilters);
-  document.getElementById("filterSize").addEventListener("change", applyFilters);
-  document.getElementById("filterStock").addEventListener("change", applyFilters);
-  document.getElementById("filterPriceMin").addEventListener("input", applyFilters);
-  document.getElementById("filterPriceMax").addEventListener("input", applyFilters);
+  const si = document.getElementById('searchInput');
+  const fb = document.getElementById('filterBrand');
+  const ff = document.getElementById('filterFinish');
+  const fs = document.getElementById('filterSize');
+  const fst = document.getElementById('filterStock');
+  const fmin = document.getElementById('filterPriceMin');
+  const fmax = document.getElementById('filterPriceMax');
+  if (si) si.addEventListener('input', applyFilters);
+  if (fb) fb.addEventListener('change', applyFilters);
+  if (ff) ff.addEventListener('change', applyFilters);
+  if (fs) fs.addEventListener('change', applyFilters);
+  if (fst) fst.addEventListener('change', applyFilters);
+  if (fmin) fmin.addEventListener('input', applyFilters);
+  if (fmax) fmax.addEventListener('input', applyFilters);
 }
 
 // ── Populate filter dropdowns ─────────────────────────────────
@@ -47,37 +61,37 @@ function populateFilterOptions() {
   const finishes = [...new Set(allProducts.map((p) => p.finish).filter(Boolean))].sort();
   const sizes = [...new Set(allProducts.map((p) => p.size).filter(Boolean))].sort();
 
-  const brandSel = document.getElementById("filterBrand");
-  const finishSel = document.getElementById("filterFinish");
-  const sizeSel = document.getElementById("filterSize");
+  const brandSel = document.getElementById('filterBrand');
+  const finishSel = document.getElementById('filterFinish');
+  const sizeSel = document.getElementById('filterSize');
 
-  brands.forEach((v) => brandSel.add(new Option(v, v)));
-  finishes.forEach((v) => finishSel.add(new Option(v, v)));
-  sizes.forEach((v) => sizeSel.add(new Option(v, v)));
+  brands.forEach((v) => brandSel && brandSel.add(new Option(v, v)));
+  finishes.forEach((v) => finishSel && finishSel.add(new Option(v, v)));
+  sizes.forEach((v) => sizeSel && sizeSel.add(new Option(v, v)));
 }
 
 // ── Apply all active filters ──────────────────────────────────
 
 function applyFilters() {
-  const term = document.getElementById("searchInput").value.toLowerCase().trim();
-  const brand = document.getElementById("filterBrand").value;
-  const finish = document.getElementById("filterFinish").value;
-  const size = document.getElementById("filterSize").value;
-  const stock = document.getElementById("filterStock").value;
-  const priceMin = parseFloat(document.getElementById("filterPriceMin").value) || 0;
-  const priceMax = parseFloat(document.getElementById("filterPriceMax").value) || Infinity;
+  const term = document.getElementById('searchInput').value.toLowerCase().trim();
+  const brand = document.getElementById('filterBrand').value;
+  const finish = document.getElementById('filterFinish').value;
+  const size = document.getElementById('filterSize').value;
+  const stock = document.getElementById('filterStock').value;
+  const priceMin = parseFloat(document.getElementById('filterPriceMin').value) || 0;
+  const priceMax = parseFloat(document.getElementById('filterPriceMax').value) || Infinity;
 
   filteredProducts = allProducts.filter((p) => {
     const matchesSearch =
       !term ||
-      (p.name || "").toLowerCase().includes(term) ||
-      (p.brand || "").toLowerCase().includes(term) ||
-      (p.sku || "").toLowerCase().includes(term);
+      (p.name || '').toLowerCase().includes(term) ||
+      (p.brand || '').toLowerCase().includes(term) ||
+      (p.sku || '').toLowerCase().includes(term);
 
     const matchesBrand = !brand || p.brand === brand;
     const matchesFinish = !finish || p.finish === finish;
     const matchesSize = !size || p.size === size;
-    const matchesStock = !stock || p.stockStatus === stock;
+    const matchesStock = !stock || p.stock_status === stock;
 
     const price = parseFloat(p.price) || 0;
     const matchesPrice = price >= priceMin && (priceMax === Infinity || price <= priceMax);
@@ -89,47 +103,45 @@ function applyFilters() {
 }
 
 function clearFilters() {
-  document.getElementById("searchInput").value = "";
-  document.getElementById("filterBrand").value = "";
-  document.getElementById("filterFinish").value = "";
-  document.getElementById("filterSize").value = "";
-  document.getElementById("filterStock").value = "";
-  document.getElementById("filterPriceMin").value = "";
-  document.getElementById("filterPriceMax").value = "";
+  document.getElementById('searchInput').value = '';
+  document.getElementById('filterBrand').value = '';
+  document.getElementById('filterFinish').value = '';
+  document.getElementById('filterSize').value = '';
+  document.getElementById('filterStock').value = '';
+  document.getElementById('filterPriceMin').value = '';
+  document.getElementById('filterPriceMax').value = '';
   applyFilters();
 }
 
 // ── Safe onclick handlers ─────────────────────────────────────
 
 function handleQuote(id) {
-  const p = filteredProducts.find((x) => x.internalId === id);
+  const p = filteredProducts.find((x) => x.id === id);
   if (p) requestQuote(p);
 }
 
 function handlePay(id) {
-  const p = filteredProducts.find((x) => x.internalId === id);
+  const p = filteredProducts.find((x) => x.id === id);
   if (p) payAdvance(p.price);
 }
 
 function _stockStyle(status) {
-  if (status === "Out of Stock") return "color:var(--danger);";
-  if (status === "Limited Stock") return "color:var(--warning);";
-  return "color:var(--success);";
+  if (status === 'Out of Stock') return 'color:var(--danger);';
+  if (status === 'Limited Stock') return 'color:var(--warning);';
+  return 'color:var(--success);';
 }
 
 // ── Render product cards ──────────────────────────────────────
 
 function renderProducts() {
-  const grid = document.getElementById("productGrid");
-  if (!grid) return; 
+  const grid = document.getElementById('productGrid');
+  if (!grid) return;
 
   const count = filteredProducts.length;
-  const resultCountEl = document.getElementById("resultCount");
-  
+  const resultCountEl = document.getElementById('resultCount');
+
   if (resultCountEl) {
-      resultCountEl.innerText = count === 0
-        ? "No products found"
-        : `${count} Product${count === 1 ? "" : "s"} Found`;
+    resultCountEl.innerText = count === 0 ? 'No products found' : `${count} Product${count === 1 ? '' : 's'} Found`;
   }
 
   if (!count) {
@@ -143,30 +155,26 @@ function renderProducts() {
   }
 
   grid.innerHTML = filteredProducts.map((p) => {
-        const imageId = (p.images && p.images.length > 0) ? p.images[0] : '';
-        const price = p.price || "0";
-        const unit = p.unit || "unit";
-        const stock = p.stockStatus || "In Stock";
-        const name = p.name || "Unnamed Product";
-        const brand = p.brand || "Brand";
+    const images = p.image_urls || [];
+    const imgSrc = images.length > 0 ? images[0] : 'placeholder.png';
+    const price = p.price || '0';
+    const unit = p.unit || 'unit';
+    const stock = p.stock_status || 'In Stock';
+    const name = p.name || 'Unnamed Product';
+    const brand = p.brand || 'Brand';
 
-        const saleBanner = p.onSale ? `<div style="position:absolute; bottom:0; left:0; width:100%; background:rgba(220, 38, 38, 0.9); color:white; text-align:center; font-size:0.85rem; font-weight:bold; padding:4px 0; text-transform:uppercase; z-index:10;">On Sale</div>` : '';
-        const discountBadge = p.discount ? `<div style="position:absolute; top:10px; right:10px; background:var(--danger); color:white; font-weight:bold; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-size:0.85rem; z-index:10; box-shadow:0 2px 4px rgba(0,0,0,0.2);">-${p.discount}%</div>` : '';
-
-        return `
+    return `
         <div class="card">
-            <a href="product.html?id=${p.internalId}" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">
+            <a href="product.html?id=${p.id}" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">
                 <div class="card-img-container" style="position:relative; overflow:hidden;">
-                    ${discountBadge}
-                    <img src="https://drive.google.com/thumbnail?id=${imageId}" class="card-img" alt="${name}" onerror="this.src='assets/placeholder.png'">
-                    ${saleBanner}
+                    <img src="${imgSrc}" class="card-img" alt="${name}" onerror="this.src='placeholder.png'">
                 </div>
                 <div class="card-body">
                     <span class="badge badge-warning mb-2" style="align-self:flex-start;">${brand}</span>
                     <h3 class="card-title">${name}</h3>
                     <div class="card-meta">
-                        ${p.sku ? `<span>SKU: ${p.sku}</span>` : ""}
-                        ${p.size ? `<span>${p.size}</span>` : ""}
+                        ${p.sku ? `<span>SKU: ${p.sku}</span>` : ''}
+                        ${p.size ? `<span>${p.size}</span>` : ''}
                     </div>
                     <div class="card-price">
                         &#8377;${price} <span style="font-size:0.875rem; font-weight:normal; color:var(--text-muted);">/ ${unit}</span>
@@ -175,78 +183,78 @@ function renderProducts() {
                 </div>
             </a>
             <div class="card-actions" style="padding:0 1rem 1rem;">
-                <button class="btn btn-whatsapp" data-id="${p.internalId}" onclick="handleQuote(this.dataset.id)">💬 Quote</button>
-                <button class="btn btn-primary" data-id="${p.internalId}" onclick="handlePay(this.dataset.id)">💳 Pay</button>
+                <button class="btn btn-whatsapp" data-id="${p.id}" onclick="handleQuote(this.dataset.id)">💬 Quote</button>
+                <button class="btn btn-primary" data-id="${p.id}" onclick="handlePay(this.dataset.id)">💳 Pay</button>
             </div>
         </div>`;
-      }).join("");
+  }).join('');
 }
 
 // ── Product detail page ───────────────────────────────────────
 
 async function initProductPage() {
-  showLoader("Loading Product…");
+  showLoader('Loading Product…');
 
-  const id = new URLSearchParams(window.location.search).get("id");
+  const id = new URLSearchParams(window.location.search).get('id');
   if (!id) {
-    window.location.href = "index.html";
+    window.location.href = 'index.html';
     return;
   }
 
-  const products = await loadJson("products.json");
-  const product = products.find((p) => p.internalId === id);
+  const { data: product, error } = await sb.from('products').select('*').eq('id', id).maybeSingle();
 
-  if (!product) {
-    document.getElementById("productContainer").innerHTML = '<div class="text-center section" style="color:var(--text-muted);">Product not found.</div>';
+  if (!product || error) {
+    document.getElementById('productContainer').innerHTML =
+      '<div class="text-center section" style="color:var(--text-muted);">Product not found.</div>';
     hideLoader();
     return;
   }
 
-  const mainImg = document.getElementById("mainImg");
-  const imageId = (product.images && product.images.length > 0) ? product.images[0] : '';
-  mainImg.src = `https://drive.google.com/thumbnail?id=${imageId}`;
+  const images = product.image_urls || [];
+  const mainImg = document.getElementById('mainImg');
+  mainImg.src = images.length > 0 ? images[0] : 'placeholder.png';
+  mainImg.onerror = function () { this.src = 'placeholder.png'; };
 
-  document.getElementById("thumbnails").innerHTML = (product.images || []).map((imgId) => `
-        <img src="https://drive.google.com/thumbnail?id=${imgId}"
+  document.getElementById('thumbnails').innerHTML = images.map((imgUrl) => `
+        <img src="${imgUrl}"
              style="width:80px; height:80px; object-fit:cover; cursor:pointer; border-radius:var(--radius); border:2px solid var(--border); transition:border-color 0.2s;"
              onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'"
              onclick="document.getElementById('mainImg').src=this.src" alt="${product.name}">
-    `).join("");
+    `).join('');
 
-  const brandEl = document.getElementById("p_brand");
-  if (product.onSale) {
-      brandEl.innerHTML = `${product.brand || 'Brand'} <span class="badge badge-danger" style="margin-left: 10px;">🔥 ON SALE</span>`;
-  } else {
-      brandEl.innerText = product.brand || 'Brand';
-  }
+  const brandEl = document.getElementById('p_brand');
+  if (brandEl) brandEl.innerText = product.brand || 'Brand';
 
-  document.getElementById("p_name").innerText = product.name || 'Product';
-  document.getElementById("p_sku").innerText = product.sku || '';
+  document.getElementById('p_name').innerText = product.name || 'Product';
+  document.getElementById('p_sku').innerText = product.sku || '';
 
-  const priceEl = document.getElementById("p_price");
-  if (product.discount) {
-      priceEl.innerHTML = `&#8377;${product.price || 0} <span style="color: var(--danger); font-size: 1rem; margin-left: 10px; vertical-align: middle;">(${product.discount}% OFF)</span>`;
-  } else {
-      priceEl.innerHTML = `&#8377;${product.price || 0}`;
-  }
+  const priceEl = document.getElementById('p_price');
+  if (priceEl) priceEl.innerHTML = `&#8377;${product.price || 0}`;
 
-  document.getElementById("p_unit").innerText = `/ ${product.unit || 'unit'}`;
+  const unitEl = document.getElementById('p_unit');
+  if (unitEl) unitEl.innerText = `/ ${product.unit || 'unit'}`;
 
   const specs = [
-    { label: "Category", value: product.category },
-    { label: "Size", value: product.size },
-    { label: "Finish", value: product.finish },
-    { label: "Color", value: product.color },
-    { label: "Thickness", value: product.thickness },
-    { label: "Material", value: product.material },
-    { label: "Status", value: product.stockStatus },
+    { label: 'Size', value: product.size },
+    { label: 'Finish', value: product.finish },
+    { label: 'Status', value: product.stock_status },
   ];
 
-  document.getElementById("p_specs").innerHTML = specs.filter((s) => s.value).map((s) => `
+  // Merge any additional specifications from jsonb
+  if (product.specifications && typeof product.specifications === 'object') {
+    for (const [key, val] of Object.entries(product.specifications)) {
+      if (val) specs.push({ label: key.charAt(0).toUpperCase() + key.slice(1), value: val });
+    }
+  }
+
+  const specsEl = document.getElementById('p_specs');
+  if (specsEl) {
+    specsEl.innerHTML = specs.filter((s) => s.value).map((s) => `
             <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border);">
                 <span class="text-muted">${s.label}</span>
                 <span style="font-weight:600;">${s.value}</span>
-            </div>`).join("");
+            </div>`).join('');
+  }
 
   window.currentProduct = product;
   hideLoader();

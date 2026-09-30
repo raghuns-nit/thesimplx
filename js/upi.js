@@ -4,28 +4,19 @@
 // QR rendering requires qrcode.min.js loaded before this file.
 // ============================================================
 
-/**
- * Open the UPI payment intent.
- * Uses window.open (new tab) so the product page stays open on desktop.
- * Shows a fallback alert after 2 s for browsers with no UPI app registered.
- *
- * @param {number|string} amount  Optional pre-filled amount in INR.
- */
-function payAdvance(amount = "") {
-  if (!globalSettings.upiId) {
-    alert("UPI payment is not configured yet. Please contact the store.");
+function payAdvance(amount = '') {
+  if (!globalSettings.upi_id) {
+    alert('UPI payment is not configured yet. Please contact the store.');
     return;
   }
 
-  const upiId = globalSettings.upiId;
-  const name = encodeURIComponent(globalSettings.companyName || "Merchant");
+  const upiId = globalSettings.upi_id;
+  const name = encodeURIComponent(globalSettings.company_name || 'Merchant');
   let link = `upi://pay?pa=${upiId}&pn=${name}&cu=INR`;
   if (amount) link += `&am=${amount}`;
 
-  // FIX: open in new context so product page is not navigated away
-  window.open(link, "_blank");
+  window.open(link, '_blank');
 
-  // Fallback for desktop where no UPI app is installed
   setTimeout(() => {
     alert(
       `If your UPI app didn't open automatically:\n\n` +
@@ -35,21 +26,14 @@ function payAdvance(amount = "") {
   }, 2000);
 }
 
-/**
- * Render a UPI payment QR code inside a container element.
- * The QR encodes the upi://pay URI without a fixed amount
- * so the payer can enter it inside their app.
- *
- * @param {string} containerId  id of the DOM element to populate.
- */
 function showUpiQR(containerId) {
   const container = document.getElementById(containerId);
-  if (!container || !globalSettings.upiId) return;
+  if (!container || !globalSettings.upi_id) return;
 
-  const upiId = globalSettings.upiId;
-  const name = globalSettings.companyName || "Merchant";
+  const upiId = globalSettings.upi_id;
+  const name = globalSettings.company_name || 'Merchant';
   const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&cu=INR`;
-  const qrElId = containerId + "_qr";
+  const qrElId = containerId + '_qr';
 
   container.innerHTML = `
         <p style="font-size:0.8rem; color:var(--text-muted);
@@ -63,17 +47,16 @@ function showUpiQR(containerId) {
         </p>
     `;
 
-  if (typeof QRCode !== "undefined") {
+  if (typeof QRCode !== 'undefined') {
     new QRCode(document.getElementById(qrElId), {
       text: upiLink,
       width: 160,
       height: 160,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
+      colorDark: '#000000',
+      colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.M,
     });
   } else {
-    // Library not loaded — show text fallback
     document.getElementById(qrElId).innerHTML =
       `<p style="color:var(--text-muted); font-size:0.875rem; padding:1rem;">
                 QR unavailable — please use the UPI ID above.
@@ -81,16 +64,11 @@ function showUpiQR(containerId) {
   }
 }
 
-/**
- * Find every element with class "upi-display" on the page,
- * make it visible, and render a QR code inside it.
- * Called by app.js → window.onAppReady once globalSettings is loaded.
- */
 function initUpiDisplay() {
-  if (!globalSettings.upiId) return; // UPI not configured — nothing to show
+  if (!globalSettings.upi_id) return;
 
-  document.querySelectorAll(".upi-display").forEach((el) => {
-    el.style.display = "block";
+  document.querySelectorAll('.upi-display').forEach((el) => {
+    el.style.display = 'block';
     if (el.id) showUpiQR(el.id);
   });
 }
