@@ -3,7 +3,7 @@ import { useParams, Link, useOutletContext } from 'react-router-dom';
 import { loadProductById, loadCategories } from '../../lib/data';
 import { useSettings } from '../../context/SettingsContext';
 import type { Product, Category } from '../../types';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, X } from 'lucide-react';
 
 interface OutletContextType {
   openWhatsApp: (product?: Product | null) => void;
@@ -63,14 +63,23 @@ export default function ProductDetailPage() {
 
   const upiId = settings?.upi_id;
   const companyName = settings?.company_name || 'Merchant';
+  const [showUpiModal, setShowUpiModal] = useState(false);
 
   const handlePay = () => {
     if (!upiId) {
       alert('UPI payment is not configured yet. Please contact the store.');
       return;
     }
-    const link = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(companyName)}&cu=INR&am=${product.price || ''}`;
-    window.open(link, '_blank');
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      const link = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(companyName)}&cu=INR&am=${product.price || ''}`;
+      window.location.href = link;
+      setTimeout(() => {
+        setShowUpiModal(true);
+      }, 2500);
+    } else {
+      setShowUpiModal(true);
+    }
   };
 
   return (
@@ -198,14 +207,13 @@ export default function ProductDetailPage() {
                 Pay via UPI
               </p>
               <div style={{ display: 'inline-block', marginBottom: '0.75rem', padding: '0.75rem', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
-                <a href={`upi://pay?pa=${upiId}&pn=${encodeURIComponent(companyName)}&cu=INR`} target="_blank" rel="noopener noreferrer">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${companyName}&cu=INR`)}`}
-                    alt="UPI QR Code"
-                    width={160}
-                    height={160}
-                  />
-                </a>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${companyName}&cu=INR&am=${product.price || ''}`)}`}
+                  alt="UPI QR Code"
+                  width={160}
+                  height={160}
+                  style={{ display: 'block' }}
+                />
               </div>
               <p style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '1rem', margin: 0 }}>{upiId}</p>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
@@ -215,6 +223,45 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
+
+      {/* UPI Payment Modal */}
+      {showUpiModal && upiId && (
+        <div
+          className="modal-overlay active"
+          onClick={() => setShowUpiModal(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(26,26,26,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem', backdropFilter: 'blur(6px)' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: 'var(--bg-white)', borderRadius: 'var(--radius)', maxWidth: '420px', width: '100%', boxShadow: 'var(--shadow-lg)', animation: 'fadeIn 0.25s cubic-bezier(0.4,0,0.2,1)' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ margin: 0 }}>Pay via UPI</h3>
+              <button onClick={() => setShowUpiModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.25rem 0.5rem', borderRadius: 'var(--radius-sm)' }} onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-light)'; }} onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                Scan this QR code with any UPI app to pay <strong style={{ color: 'var(--text-main)' }}>₹{product.price || ''}</strong> as advance.
+              </p>
+              <div style={{ display: 'inline-block', marginBottom: '1rem', padding: '0.75rem', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=${upiId}&pn=${companyName}&cu=INR&am=${product.price || ''}`)}`}
+                  alt="UPI QR Code"
+                  width={180}
+                  height={180}
+                  style={{ display: 'block' }}
+                />
+              </div>
+              <p style={{ fontWeight: 700, fontFamily: 'monospace', fontSize: '1.05rem', margin: 0, marginBottom: '0.25rem' }}>{upiId}</p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 0 }}>
+                Scan with PhonePe, GPay, Paytm or any UPI app.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media (max-width: 768px) {

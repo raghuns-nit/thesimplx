@@ -1,16 +1,17 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { loadProducts } from '../../lib/data';
+import { loadProducts, loadCategories } from '../../lib/data';
 import { supabase } from '../../lib/supabase';
 import {
   extractSignature,
   computeSimilarity,
   serializeSignature,
   deserializeSignature,
+  SIGNATURE_VERSION,
   type ImageSignature,
 } from '../../lib/imageSignature';
-import type { Product } from '../../types';
-import { Upload, Search, ImageIcon, X, Loader2 } from 'lucide-react';
+import type { Product, Category } from '../../types';
+import { Upload, Search, ImageIcon, X, Loader2, Tag } from 'lucide-react';
 
 interface OutletContextType {
   openWhatsApp: (product?: Product | null) => void;
@@ -21,9 +22,12 @@ interface MatchResult {
   score: number;
 }
 
+const MIN_MATCH_THRESHOLD = 50;
+
 export default function VisualSearchPage() {
   const { openWhatsApp } = useOutletContext<OutletContextType>();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [computingSignatures, setComputingSignatures] = useState(false);
   const [signatureProgress, setSignatureProgress] = useState(0);
@@ -35,19 +39,26 @@ export default function VisualSearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [searchedCategory, setSearchedCategory] = useState<string>('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load products on mount, then auto-compute missing signatures
+  // Load products and categories on mount, then auto-compute missing/stale signatures
   useEffect(() => {
     (async () => {
-      const prods = await loadProducts();
+      const [prods, cats] = await Promise.all([loadProducts(), loadCategories()]);
       setProducts(prods);
+      setCategories(cats);
       setLoadingProducts(false);
 
-      // Auto-compute signatures for products missing one
-      const missing = prods.filter(
-        (p) => !p.visual_signature && p.image_urls && p.image_urls.length > 0,
-      );
+      // Auto-compute signatures for products missing one or with stale version
+      const missing = prods.filter((p) => {
+        if (!p.image_urls || p.image_urls.length === 0) return false;
+        if (!p.visual_signature) return true;
+        const sig = deserializeSignature(p.visual_signature);
+        return sig === null;
+      });
       if (missing.length > 0) {
         setComputingSignatures(true);
         let computed = 0;
@@ -66,7 +77,6 @@ export default function VisualSearchPage() {
             }
             computed++;
             setSignatureProgress(computed);
-            // Update local state so we don't recompute
             setProducts((prev) =>
               prev.map((p) =>
                 p.id === prod.id ? { ...p, visual_signature: serialized } : p,
@@ -79,6 +89,37 @@ export default function VisualSearchPage() {
     })();
   }, []);
 
+  const runSearch = useCallback(
+    (sig: ImageSignature, categoryFilter: string) => {
+      const prods = products;
+      const matches: MatchResult[] = prods
+        .filter((p) => {
+          if (!p.visual_signature) return false;
+          if (categoryFilter && p.category_id !== categoryFilter) return false;
+          const deserialized = deserializeSignature(p.visual_signature);
+          if (!deserialized) return false;
+          return true;
+        })
+        .map((p) => {
+          const deserialized = deserializeSignature(p.visual_signature!);
+          if (!deserialized) return null;
+          return {
+            product: p,
+            score: computeSimilarity(sig, deserialized),
+          };
+        })
+        .filter((m): m is MatchResult => m !== null)
+        .filter((m) => m.score >= MIN_MATCH_THRESHOLD)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 12);
+
+      setResults(matches);
+      setHasSearched(true);
+      setSearchedCategory(categoryFilter);
+    },
+    [products],
+  );
+
   const handleFile = useCallback(
     async (file: File) => {
       if (!file.type.startsWith('image/')) return;
@@ -87,29 +128,19 @@ export default function VisualSearchPage() {
       setAnalyzing(true);
       setHasSearched(false);
       setResults([]);
+      setSelectedCategory('');
 
       const sig = await extractSignature(url);
       setUploadedSignature(sig);
       setAnalyzing(false);
-
-      if (sig) {
-        // Wait for products to be loaded
-        const prods = products.length > 0 ? products : await loadProducts();
-        const matches: MatchResult[] = prods
-          .filter((p) => p.visual_signature)
-          .map((p) => ({
-            product: p,
-            score: computeSimilarity(sig, deserializeSignature(p.visual_signature!)),
-          }))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 12);
-
-        setResults(matches);
-        setHasSearched(true);
-      }
     },
-    [products],
+    [],
   );
+
+  const handleCategorySearch = () => {
+    if (!uploadedSignature) return;
+    runSearch(uploadedSignature, selectedCategory);
+  };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -129,6 +160,8 @@ export default function VisualSearchPage() {
     setUploadedSignature(null);
     setResults([]);
     setHasSearched(false);
+    setSelectedCategory('');
+    setSearchedCategory('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -140,9 +173,11 @@ export default function VisualSearchPage() {
 
   const matchBadgeColor = (score: number) => {
     if (score >= 70) return { bg: 'var(--success-light)', color: 'var(--success)' };
-    if (score >= 40) return { bg: 'var(--warning-light)', color: 'var(--accent-dark)' };
+    if (score >= 50) return { bg: 'var(--warning-light)', color: 'var(--accent-dark)' };
     return { bg: 'var(--bg-light)', color: 'var(--text-muted)' };
   };
+
+  const searchedCategoryName = categories.find((c) => c.id === searchedCategory)?.name || 'All Categories';
 
   return (
     <div className="container section fade-in">
@@ -196,7 +231,7 @@ export default function VisualSearchPage() {
         style={{ display: 'none' }}
       />
 
-      {/* Uploaded Image Preview + Results */}
+      {/* Uploaded Image Preview + Category Picker + Results */}
       {uploadedImage && (
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
           {/* Preview panel */}
@@ -226,7 +261,7 @@ export default function VisualSearchPage() {
             </div>
             {analyzing && (
               <div style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                <Loader2 size={18} className="spinner" style={{ animation: 'spin 0.8s linear infinite', marginRight: '0.5rem', verticalAlign: 'middle' }} />
+                <Loader2 size={18} style={{ animation: 'spin 0.8s linear infinite', marginRight: '0.5rem', verticalAlign: 'middle' }} />
                 Analyzing image...
               </div>
             )}
@@ -239,113 +274,211 @@ export default function VisualSearchPage() {
             )}
           </div>
 
-          {/* Results panel */}
+          {/* Right panel: category picker + results */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            {loadingProducts || computingSignatures ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                {computingSignatures ? (
-                  <>
-                    <Loader2 size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
-                    <p style={{ marginTop: '0.75rem' }}>
-                      Preparing product signatures... {signatureProgress > 0 && `(${signatureProgress} done)`}
-                    </p>
-                    <p style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                      This happens once so future searches are instant.
-                    </p>
-                  </>
-                ) : (
-                  <p>Loading products...</p>
+            {/* Category Picker */}
+            {!analyzing && uploadedSignature && !hasSearched && (
+              <div style={{
+                background: 'var(--bg-white)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+                padding: '1.5rem',
+                boxShadow: 'var(--shadow-card)',
+                marginBottom: '1.5rem',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <Tag size={18} style={{ color: 'var(--accent)' }} />
+                  <h3 style={{ margin: 0, fontSize: '1.05rem' }}>What are you looking for?</h3>
+                </div>
+                <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                  Select a category to narrow your search, or search across all categories.
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                  <button
+                    onClick={() => setSelectedCategory('')}
+                    style={{
+                      padding: '0.625rem 1.25rem',
+                      borderRadius: 'var(--radius-full)',
+                      border: `2px solid ${selectedCategory === '' ? 'var(--accent)' : 'var(--border-strong)'}`,
+                      background: selectedCategory === '' ? 'var(--accent-light)' : 'var(--bg-white)',
+                      color: selectedCategory === '' ? 'var(--accent)' : 'var(--text-main)',
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    All Categories
+                  </button>
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      style={{
+                        padding: '0.625rem 1.25rem',
+                        borderRadius: 'var(--radius-full)',
+                        border: `2px solid ${selectedCategory === cat.id ? 'var(--accent)' : 'var(--border-strong)'}`,
+                        background: selectedCategory === cat.id ? 'var(--accent-light)' : 'var(--bg-white)',
+                        color: selectedCategory === cat.id ? 'var(--accent)' : 'var(--text-main)',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="btn btn-accent"
+                  onClick={handleCategorySearch}
+                  disabled={loadingProducts || computingSignatures}
+                  style={{ width: '100%', padding: '0.75rem' }}
+                >
+                  <Search size={18} /> Find Matching Products
+                </button>
+                {(loadingProducts || computingSignatures) && (
+                  <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
+                    {computingSignatures
+                      ? `Preparing product signatures... (${signatureProgress} done)`
+                      : 'Loading products...'}
+                  </p>
                 )}
               </div>
-            ) : analyzing ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                <Loader2 size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
-                <p style={{ marginTop: '0.75rem' }}>Finding similar products...</p>
-              </div>
-            ) : hasSearched && results.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-                <ImageIcon size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-                <p>No similar products found. Try a different image.</p>
-              </div>
-            ) : results.length > 0 ? (
-              <>
-                <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <p className="text-muted" style={{ fontSize: '0.875rem' }}>
-                    {results.length} match{results.length === 1 ? '' : 'es'} found
-                  </p>
-                </div>
-                <div className="grid grid-cols-3">
-                  {results.map((match, idx) => {
-                    const p = match.product;
-                    const images = p.image_urls || [];
-                    const imgSrc = images.length > 0 ? images[0] : '/placeholder.png';
-                    const badge = matchBadgeColor(match.score);
+            )}
 
-                    return (
-                      <div
-                        key={p.id}
-                        style={{
-                          background: 'var(--bg-white)',
-                          borderRadius: 'var(--radius)',
-                          overflow: 'hidden',
-                          border: '1px solid var(--border)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s',
-                          animation: `fadeInSlow 0.4s ease-out ${Math.min(idx * 0.05, 0.4)}s both`,
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-                      >
-                        <Link to={`/product/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                          <div style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1', background: 'var(--bg-light)' }}>
-                            <span style={{
-                              position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 1,
-                              background: badge.bg, color: badge.color, fontSize: '0.7rem', fontWeight: 700,
-                              padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-full)',
-                              letterSpacing: '0.03em',
-                            }}>
-                              {match.score}% match
-                            </span>
-                            <img
-                              src={imgSrc}
-                              alt={p.name}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)' }}
-                              onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
-                              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                            />
-                          </div>
-                          <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                            {p.brand && <span className="badge badge-warning mb-2" style={{ alignSelf: 'flex-start' }}>{p.brand}</span>}
-                            <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>{p.name}</h3>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                              {p.sku && <span>SKU: {p.sku}</span>}
-                              {p.size && <span> · {p.size}</span>}
+            {/* Change category bar after results */}
+            {hasSearched && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+                marginBottom: '1rem',
+                padding: '0.75rem 1rem',
+                background: 'var(--bg-white)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                boxShadow: 'var(--shadow-card)',
+              }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Searching in:
+                </span>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    if (uploadedSignature) runSearch(uploadedSignature, e.target.value);
+                  }}
+                  style={{
+                    width: 'auto',
+                    padding: '0.4rem 0.75rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Results */}
+            {hasSearched && (
+              <>
+                {results.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                    <ImageIcon size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+                    <p>No matches found in {searchedCategoryName} with at least {MIN_MATCH_THRESHOLD}% similarity.</p>
+                    <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                      Try a different category or a clearer photo of the product.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <p className="text-muted" style={{ fontSize: '0.875rem' }}>
+                        {results.length} match{results.length === 1 ? '' : 'es'} found in {searchedCategoryName}
+                        {' '}({MIN_MATCH_THRESHOLD}%+ similarity)
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-3">
+                      {results.map((match, idx) => {
+                        const p = match.product;
+                        const images = p.image_urls || [];
+                        const imgSrc = images.length > 0 ? images[0] : '/placeholder.png';
+                        const badge = matchBadgeColor(match.score);
+
+                        return (
+                          <div
+                            key={p.id}
+                            style={{
+                              background: 'var(--bg-white)',
+                              borderRadius: 'var(--radius)',
+                              overflow: 'hidden',
+                              border: '1px solid var(--border)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s',
+                              animation: `fadeInSlow 0.4s ease-out ${Math.min(idx * 0.05, 0.4)}s both`,
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                          >
+                            <Link to={`/product/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                              <div style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1', background: 'var(--bg-light)' }}>
+                                <span style={{
+                                  position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 1,
+                                  background: badge.bg, color: badge.color, fontSize: '0.7rem', fontWeight: 700,
+                                  padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-full)',
+                                  letterSpacing: '0.03em',
+                                }}>
+                                  {match.score}% match
+                                </span>
+                                <img
+                                  src={imgSrc}
+                                  alt={p.name}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)' }}
+                                  onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                                />
+                              </div>
+                              <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                                {p.brand && <span className="badge badge-warning mb-2" style={{ alignSelf: 'flex-start' }}>{p.brand}</span>}
+                                <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>{p.name}</h3>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                  {p.sku && <span>SKU: {p.sku}</span>}
+                                  {p.size && <span> · {p.size}</span>}
+                                </div>
+                                <div style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--primary)' }}>
+                                  ₹{p.price || 0}
+                                  <span style={{ fontSize: '0.875rem', fontWeight: 'normal', color: 'var(--text-muted)' }}> / {p.unit || 'unit'}</span>
+                                </div>
+                                <p style={{ fontSize: '0.8rem', fontWeight: 600, marginTop: 'auto', paddingTop: '0.5rem', ...stockStyle(p.stock_status) }}>
+                                  {p.stock_status || 'In Stock'}
+                                </p>
+                              </div>
+                            </Link>
+                            <div style={{ padding: '0 1rem 1rem', display: 'flex', gap: '0.5rem' }}>
+                              <button className="btn btn-whatsapp" style={{ flex: 1, padding: '0.5rem' }} onClick={() => openWhatsApp(p)}>
+                                Quote
+                              </button>
+                              <Link to={`/product/${p.id}`} className="btn btn-primary" style={{ flex: 1, padding: '0.5rem' }}>
+                                Details
+                              </Link>
                             </div>
-                            <div style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--primary)' }}>
-                              ₹{p.price || 0}
-                              <span style={{ fontSize: '0.875rem', fontWeight: 'normal', color: 'var(--text-muted)' }}> / {p.unit || 'unit'}</span>
-                            </div>
-                            <p style={{ fontSize: '0.8rem', fontWeight: 600, marginTop: 'auto', paddingTop: '0.5rem', ...stockStyle(p.stock_status) }}>
-                              {p.stock_status || 'In Stock'}
-                            </p>
                           </div>
-                        </Link>
-                        <div style={{ padding: '0 1rem 1rem', display: 'flex', gap: '0.5rem' }}>
-                          <button className="btn btn-whatsapp" style={{ flex: 1, padding: '0.5rem' }} onClick={() => openWhatsApp(p)}>
-                            Quote
-                          </button>
-                          <Link to={`/product/${p.id}`} className="btn btn-primary" style={{ flex: 1, padding: '0.5rem' }}>
-                            Details
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </>
-            ) : null}
+            )}
           </div>
         </div>
       )}

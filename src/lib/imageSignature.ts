@@ -1,12 +1,12 @@
 /*
  * Browser-based image signature extraction.
  * Analyzes an image via canvas to produce a compact numeric fingerprint
- * capturing dominant colors, brightness, and texture features.
+ * capturing dominant colors (HSV space), brightness, and texture features.
  * No external AI service required.
  */
 
 export interface ImageSignature {
-  /** 8 RGB color buckets (R*4 + G*2 + B*2 = 8 bins), normalized 0-1 */
+  /** 32 HSV color buckets (8 hue x 2 saturation x 2 value), normalized 0-1 */
   colorHistogram: number[];
   /** Average brightness 0-1 */
   brightness: number;
@@ -18,7 +18,10 @@ export interface ImageSignature {
   colorVariance: number;
 }
 
-const SIGNATURE_SIZE = 48;
+const SIGNATURE_SIZE = 64;
+
+/** Signature format version — bumped when the algorithm changes so old stored signatures are recomputed */
+export const SIGNATURE_VERSION = 2;
 
 /**
  * Load an image from a URL into an HTMLImageElement.
@@ -47,14 +50,51 @@ function getImageData(img: HTMLImageElement, size: number): ImageData {
 }
 
 /**
- * Compute a color bucket index from RGB values.
- * 2 red bins x 2 green bins x 2 blue bins = 8 buckets.
+ * Convert RGB to HSV.
+ * Returns h (0-360), s (0-1), v (0-1).
  */
-function colorBucket(r: number, g: number, b: number): number {
-  const ri = r < 128 ? 0 : 1;
-  const gi = g < 128 ? 0 : 1;
-  const bi = b < 128 ? 0 : 1;
-  return ri * 4 + gi * 2 + bi;
+function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const d = max - min;
+  let h = 0;
+  if (d !== 0) {
+    if (max === rn) {
+      h = ((gn - bn) / d) % 6;
+    } else if (max === gn) {
+      h = (bn - rn) / d + 2;
+    } else {
+      h = (rn - gn) / d + 4;
+    }
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  const s = max === 0 ? 0 : d / max;
+  const v = max;
+  return [h, s, v];
+}
+
+/**
+ * Compute an HSV color bucket index from RGB values.
+ * 8 hue bins x 2 saturation bins x 2 value bins = 32 buckets.
+ * Low-saturation (near-gray) pixels go to a separate set of achromatic buckets
+ * indexed by value only, so grays don't pollute the hue bins.
+ */
+function hsvBucket(r: number, g: number, b: number): number {
+  const [h, s, v] = rgbToHsv(r, g, b);
+  // Achromatic: very low saturation — use value-only bins (indices 28-31)
+  if (s < 0.15) {
+    const vi = v < 0.5 ? 0 : 1;
+    return 28 + vi;
+  }
+  // Chromatic: 8 hue bins x 2 sat bins x 2 value bins = 32 (but we use 0-27)
+  const hi = Math.min(7, Math.floor(h / 45));
+  const si = s < 0.5 ? 0 : 1;
+  const vi = v < 0.5 ? 0 : 1;
+  return hi * 4 + si * 2 + vi;
 }
 
 /**
@@ -67,7 +107,7 @@ export async function extractSignature(imageUrl: string): Promise<ImageSignature
     const pixels = data.data;
     const totalPixels = SIGNATURE_SIZE * SIGNATURE_SIZE;
 
-    const colorHistogram = new Array(8).fill(0);
+    const colorHistogram = new Array(30).fill(0);
     const brightnessHistogram = new Array(8).fill(0);
     let totalBrightness = 0;
     let totalR = 0, totalG = 0, totalB = 0;
@@ -81,7 +121,7 @@ export async function extractSignature(imageUrl: string): Promise<ImageSignature
       totalG += g;
       totalB += b;
 
-      colorHistogram[colorBucket(r, g, b)]++;
+      colorHistogram[hsvBucket(r, g, b)]++;
 
       const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
       totalBrightness += brightness;
@@ -90,8 +130,10 @@ export async function extractSignature(imageUrl: string): Promise<ImageSignature
     }
 
     // Normalize histograms
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 30; i++) {
       colorHistogram[i] /= totalPixels;
+    }
+    for (let i = 0; i < 8; i++) {
       brightnessHistogram[i] /= totalPixels;
     }
 
@@ -143,12 +185,13 @@ export async function extractSignature(imageUrl: string): Promise<ImageSignature
 
 /**
  * Compute similarity between two signatures as a 0-100 percentage.
- * Weighted: color histogram 50%, brightness histogram 25%, edge density 15%, color variance 10%.
+ * Weighted: color histogram 70%, brightness histogram 15%, edge density 10%, color variance 5%.
+ * Color is the dominant factor so opposite colors score very low.
  */
 export function computeSimilarity(a: ImageSignature, b: ImageSignature): number {
   // Color histogram intersection (1 = identical, 0 = no overlap)
   let colorInter = 0;
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 30; i++) {
     colorInter += Math.min(a.colorHistogram[i], b.colorHistogram[i]);
   }
 
@@ -165,19 +208,21 @@ export function computeSimilarity(a: ImageSignature, b: ImageSignature): number 
   const varSim = 1 - Math.abs(a.colorVariance - b.colorVariance);
 
   const score =
-    colorInter * 0.50 +
-    brightInter * 0.25 +
-    edgeSim * 0.15 +
-    varSim * 0.10;
+    colorInter * 0.70 +
+    brightInter * 0.15 +
+    edgeSim * 0.10 +
+    varSim * 0.05;
 
   return Math.round(Math.max(0, Math.min(1, score)) * 100);
 }
 
 /**
  * Serialize a signature to a plain array for database storage.
+ * Format: [version, ...30 color, brightness, ...8 brightness, edge, variance]
  */
 export function serializeSignature(sig: ImageSignature): number[] {
   return [
+    SIGNATURE_VERSION,
     ...sig.colorHistogram,
     sig.brightness,
     ...sig.brightnessHistogram,
@@ -188,13 +233,17 @@ export function serializeSignature(sig: ImageSignature): number[] {
 
 /**
  * Deserialize a signature from a plain array (from database).
+ * Returns null if the version doesn't match (stale signature needs recompute).
  */
-export function deserializeSignature(arr: number[]): ImageSignature {
+export function deserializeSignature(arr: number[]): ImageSignature | null {
+  if (!arr || arr.length < 2) return null;
+  const version = arr[0];
+  if (version !== SIGNATURE_VERSION) return null;
   return {
-    colorHistogram: arr.slice(0, 8),
-    brightness: arr[8],
-    brightnessHistogram: arr.slice(9, 17),
-    edgeDensity: arr[17],
-    colorVariance: arr[18],
+    colorHistogram: arr.slice(1, 31),
+    brightness: arr[31],
+    brightnessHistogram: arr.slice(32, 40),
+    edgeDensity: arr[40],
+    colorVariance: arr[41],
   };
 }
