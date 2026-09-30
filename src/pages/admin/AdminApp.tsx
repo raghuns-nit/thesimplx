@@ -84,7 +84,7 @@ export default function AdminApp() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-page)' }}>
       {/* Sidebar */}
-      <aside style={{
+      <aside className="admin-sidebar" style={{
         width: '260px',
         flexShrink: 0,
     background: 'var(--primary-dark)',
@@ -159,7 +159,7 @@ export default function AdminApp() {
       )}
 
       {/* Main content */}
-      <div style={{ flex: 1, marginLeft: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
+      <div className="admin-content" style={{ flex: 1, marginLeft: 0, display: 'flex', flexDirection: 'column', width: 'auto', minWidth: 0 }}>
         {/* Top bar */}
         <div style={{
           background: 'var(--bg-white)',
@@ -197,7 +197,7 @@ export default function AdminApp() {
 
       <style>{`
         @media (min-width: 769px) {
-          aside { transform: translateX(0) !important; }
+          aside.admin-sidebar { transform: translateX(0) !important; }
           .admin-menu-btn { display: none !important; }
           .admin-content { margin-left: 260px !important; }
         }
