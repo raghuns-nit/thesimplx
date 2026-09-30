@@ -22,7 +22,7 @@ export default function PublicLayout() {
 
   return (
     <>
-      <Header />
+      <Header onOpenWhatsApp={() => openWhatsApp(null)} />
       <main style={{ flex: 1 }}>
         <Outlet context={{ openWhatsApp }} />
       </main>

@@ -2,7 +2,11 @@ import { Link, useLocation } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import { Phone, MessageCircle, MapPin } from 'lucide-react';
 
-export default function Header() {
+interface HeaderProps {
+  onOpenWhatsApp: () => void;
+}
+
+export default function Header({ onOpenWhatsApp }: HeaderProps) {
   const { settings } = useSettings();
   const location = useLocation();
 
@@ -59,14 +63,7 @@ export default function Header() {
             )}
             {settings?.whatsapp && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.5)', padding: '0.2rem 0.9rem', borderRadius: '20px' }}
-                onClick={() => {
-                  const wa = settings.whatsapp!;
-                  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                  const waUrl = isMobile
-                    ? `https://wa.me/${wa.replace(/\D/g, '')}`
-                    : `https://web.whatsapp.com/send?phone=${wa.replace(/\D/g, '')}`;
-                  window.open(waUrl, '_blank');
-                }}
+                onClick={onOpenWhatsApp}
               >
                 <MessageCircle size={14} /> WhatsApp
               </span>
