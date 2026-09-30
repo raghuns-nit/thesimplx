@@ -11,7 +11,7 @@ import {
   type ImageSignature,
 } from '../../lib/imageSignature';
 import type { Product, Category } from '../../types';
-import { Upload, Search, ImageIcon, X, Loader2, Tag } from 'lucide-react';
+import { Upload, Search, ImageIcon, X, Loader2, Tag, Camera } from 'lucide-react';
 
 interface OutletContextType {
   openWhatsApp: (product?: Product | null) => void;
@@ -43,6 +43,9 @@ export default function VisualSearchPage() {
   const [searchedCategory, setSearchedCategory] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   // Load products and categories on mount, then auto-compute missing/stale signatures
   useEffect(() => {
@@ -163,6 +166,7 @@ export default function VisualSearchPage() {
     setSelectedCategory('');
     setSearchedCategory('');
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const stockStyle = (status: string | null) => {
@@ -190,43 +194,71 @@ export default function VisualSearchPage() {
 
       {/* Upload Zone */}
       {!uploadedImage && (
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          style={{
-            border: `2.5px dashed ${dragOver ? 'var(--accent)' : 'var(--border-strong)'}`,
-            borderRadius: 'var(--radius)',
-            padding: '3.5rem 2rem',
-            textAlign: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.25s',
-            background: dragOver ? 'var(--accent-light)' : 'var(--bg-white)',
-            boxShadow: 'var(--shadow-card)',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = dragOver ? 'var(--accent)' : 'var(--border-strong)'; }}
-        >
-          <div style={{
-            width: '72px', height: '72px', borderRadius: '50%',
-            background: 'var(--accent-light)', color: 'var(--accent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.25rem', transition: 'transform 0.25s',
-          }}>
-            <Upload size={32} />
+        <>
+          {isMobile && (
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+              <button
+                className="btn btn-accent"
+                onClick={() => cameraInputRef.current?.click()}
+                style={{ flex: 1, padding: '0.875rem 1rem', fontSize: '0.95rem' }}
+              >
+                <Camera size={20} /> Take Photo
+              </button>
+              <button
+                className="btn btn-outline"
+                onClick={() => fileInputRef.current?.click()}
+                style={{ flex: 1, padding: '0.875rem 1rem', fontSize: '0.95rem' }}
+              >
+                <Upload size={20} /> Upload Image
+              </button>
+            </div>
+          )}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            style={{
+              border: `2.5px dashed ${dragOver ? 'var(--accent)' : 'var(--border-strong)'}`,
+              borderRadius: 'var(--radius)',
+              padding: isMobile ? '2.5rem 1.5rem' : '3.5rem 2rem',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.25s',
+              background: dragOver ? 'var(--accent-light)' : 'var(--bg-white)',
+              boxShadow: 'var(--shadow-card)',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = dragOver ? 'var(--accent)' : 'var(--border-strong)'; }}
+          >
+            <div style={{
+              width: '72px', height: '72px', borderRadius: '50%',
+              background: 'var(--accent-light)', color: 'var(--accent)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 1.25rem', transition: 'transform 0.25s',
+            }}>
+              <Upload size={32} />
+            </div>
+            <h3 style={{ marginBottom: '0.5rem' }}>{isMobile ? 'Tap to browse' : 'Drop an image here'}</h3>
+            <p className="text-muted" style={{ fontSize: '0.9rem' }}>
+              {isMobile ? 'JPG, PNG, WebP supported' : 'or click to browse — JPG, PNG, WebP supported'}
+            </p>
           </div>
-          <h3 style={{ marginBottom: '0.5rem' }}>Drop an image here</h3>
-          <p className="text-muted" style={{ fontSize: '0.9rem' }}>
-            or click to browse — JPG, PNG, WebP supported
-          </p>
-        </div>
+        </>
       )}
 
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        onChange={handleFileInput}
+        style={{ display: 'none' }}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         onChange={handleFileInput}
         style={{ display: 'none' }}
       />
