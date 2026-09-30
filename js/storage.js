@@ -90,9 +90,9 @@ async function loadEnquiries() {
 }
 
 async function insertEnquiry(enquiry) {
-  const { data, error } = await sb.from('enquiries').insert(enquiry).select().single();
+  const { error } = await sb.from('enquiries').insert(enquiry);
   if (error) { console.error('insertEnquiry:', error); return null; }
-  return data;
+  return true;
 }
 
 async function updateEnquiry(id, updates) {
@@ -109,21 +109,6 @@ async function loadActivityLogs() {
   const { data, error } = await sb.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(200);
   if (error) { console.error('loadActivityLogs:', error); return []; }
   return data || [];
-}
-
-async function logActivity(action, entityType, entityId) {
-  try {
-    const { data: { user } } = await sb.auth.getUser();
-    const { error } = await sb.from('activity_logs').insert({
-      username: user?.email || 'system',
-      action,
-      entity_type: entityType,
-      entity_id: entityId
-    });
-    if (error) console.error('logActivity:', error);
-  } catch (e) {
-    console.error('logActivity exception:', e);
-  }
 }
 
 // ── Image upload (Supabase Storage) ──────────────────────────

@@ -26,8 +26,8 @@ function switchTab(tabId, element = null) {
   const titleEl = document.getElementById('pageTitle');
   if (titleEl) titleEl.innerText = titles[tabId] || 'Dashboard';
 
-  if (tabId === 'enquiries' && typeof loadEnquiries === 'function') loadEnquiries();
-  if (tabId === 'activity' && typeof loadActivityLogs === 'function') loadActivityLogs();
+  if (tabId === 'enquiries' && typeof renderEnquiriesTab === 'function') renderEnquiriesTab();
+  if (tabId === 'activity' && typeof renderActivityTab === 'function') renderActivityTab();
 
   const sidebar = document.getElementById('sidebar');
   if (sidebar && sidebar.classList.contains('open')) sidebar.classList.remove('open');
@@ -93,8 +93,8 @@ async function loadDashboardData() {
   const [cats, prods, logs, enquiries] = await Promise.all([
     loadCategories(),
     loadProducts(),
-    loadActivityLogsFromDB(),
-    loadEnquiriesFromDB(),
+    loadActivityLogs(),
+    loadEnquiries(),
   ]);
   window._enquiriesCache = enquiries;
 
@@ -110,10 +110,10 @@ async function loadDashboardData() {
 
 // ── Enquiries tab ─────────────────────────────────────────────
 
-async function loadEnquiries() {
+async function renderEnquiriesTab() {
   showLoader('Loading Enquiries...');
 
-  const enquiries = await loadEnquiriesFromDB();
+  const enquiries = await loadEnquiries();
   window._enquiriesCache = enquiries;
   const tbody = document.getElementById('enquiriesTableBody');
   if (!tbody) { hideLoader(); return; }
@@ -148,14 +148,6 @@ async function loadEnquiries() {
   hideLoader();
 }
 
-async function loadEnquiriesFromDB() {
-  return loadEnquiries();
-}
-
-async function loadActivityLogsFromDB() {
-  return loadActivityLogs();
-}
-
 // ── Enquiries Update Handlers ─────────────────────────────────
 
 function openEnquiryModal(id) {
@@ -187,15 +179,15 @@ async function handleSaveEnquiryMeta(e) {
   await logActivity('UPDATE_ENQUIRY', 'enquiry', id);
 
   closeModal('enquiryModal');
-  await loadEnquiries();
+  await renderEnquiriesTab();
   await loadDashboardData();
 }
 
 // ── Activity Logs tab ─────────────────────────────────────────
 
-async function loadActivityLogs() {
+async function renderActivityTab() {
   showLoader('Loading Activity Logs...');
-  const data = await loadActivityLogsFromDB();
+  const data = await loadActivityLogs();
   const tbody = document.getElementById('activityTableBody');
   if (!tbody) { hideLoader(); return; }
 
