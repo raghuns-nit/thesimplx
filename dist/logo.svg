@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 150" role="img" aria-labelledby="title desc">
+  <title id="title">Simplx World</title>
+  <desc id="desc">Simplx World building materials logo</desc>
+  <g transform="translate(8 10)">
+    <path fill="#2f328e" d="M9 91h76v12H9zM18 30h11v61H18zM37 12h11v79H37zM56 39h11v52H56zM75 23h11v68H75z"/>
+    <path fill="#dc302d" d="M25 25c7-22 39-22 48 0H62c-5-9-20-9-25 0zM2 30c3-16 17-25 32-25v12c-9 0-17 4-20 13z"/>
+    <path fill="#3e3e3e" d="M0 94l47 18 47-18-47-13z"/>
+    <path fill="#fff" d="M9 95l38 14 38-14-38-10z"/>
+    <path fill="#3e3e3e" d="M15 97h64l-32 12z" opacity=".18"/>
+    <text x="31" y="79" fill="#3e3e3e" font-family="Arial,sans-serif" font-size="10" font-weight="700">HARI</text>
+    <text x="24" y="89" fill="#3e3e3e" font-family="Arial,sans-serif" font-size="8" font-weight="700">RAJ</text>
+  </g>
+  <text x="139" y="101" fill="#dc302d" font-family="Arial,sans-serif" font-size="72" font-weight="800" letter-spacing="-5">Simpl</text>
+  <text x="326" y="101" fill="#2f328e" font-family="Arial,sans-serif" font-size="72" font-weight="800" letter-spacing="-5">x</text>
+  <text x="414" y="101" fill="#dc302d" font-family="Georgia,serif" font-size="62" font-style="italic">World</text>
+</svg>
