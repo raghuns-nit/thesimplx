@@ -3,6 +3,8 @@
 .admin-layout { display: flex; min-height: 100vh; background-color: #f1f5f9; }
 .admin-sidebar { width: 250px; background-color: var(--text-main); color: white; display: flex; flex-direction: column; position: fixed; height: 100vh; overflow-y: auto; z-index: 40; }
 .admin-brand { padding: 1.5rem; font-size: 1.25rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 0.5rem; color: white; }
+.admin-brand img { width: 36px; height: auto; flex-shrink: 0; }
+.admin-brand span { font-size: 1rem; font-weight: 800; line-height: 1.2; }
 .admin-nav { padding: 1rem 0; flex: 1; }
 .admin-nav-item { display: block; padding: 0.75rem 1.5rem; color: #cbd5e1; transition: background 0.2s, color 0.2s; font-weight: 500; cursor: pointer; }
 .admin-nav-item:hover, .admin-nav-item.active { background-color: rgba(255,255,255,0.1); color: white; border-left: 4px solid var(--primary); }

@@ -37,9 +37,15 @@
     letter-spacing: -0.02em;
 }
 
-.admin-brand::before {
-    content: "🏗️";
-    font-size: 1.5rem;
+.admin-brand img {
+    width: 36px;
+    height: auto;
+    flex-shrink: 0;
+}
+.admin-brand span {
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.2;
 }
 
 .admin-nav {

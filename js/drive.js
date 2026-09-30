@@ -3,7 +3,7 @@
 // Low-level Drive helpers used by storage.js and the admin JS.
 //
 // Drive folder layout after first admin login:
-//   theSimpLx/                  ← STATE.rootFolderId
+//   SimplxWorld/                  ← STATE.rootFolderId
 //   ├── catalog/                ← STATE.catalogFolderId  (JSON data files)
 //   └── images/                 ← STATE.imagesFolderId
 //       └── <category_slug>/    (one per category, e.g. floor_tiles)
@@ -176,13 +176,13 @@ async function initDriveStructure() {
   showLoader("Initializing Storage...");
   try {
     let root = await findFile(
-      "theSimpLx",
+      "SimplxWorld",
       "root",
       "application/vnd.google-apps.folder",
     );
     STATE.rootFolderId = root
       ? root.id
-      : await createFolder("theSimpLx", "root");
+      : await createFolder("SimplxWorld", "root");
 
     let catalog = await findFile(
       "catalog",

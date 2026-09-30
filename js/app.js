@@ -15,7 +15,7 @@ window.onAppReady = async function () {
   globalSettings = await loadJson("settings.json");
 
   // Update every element with class="company-name"
-  const companyName = globalSettings.companyName || "theSimpLx";
+  const companyName = globalSettings.companyName || "Simplx World";
   document
     .querySelectorAll(".company-name")
     .forEach((el) => (el.innerText = companyName));
@@ -25,7 +25,7 @@ window.onAppReady = async function () {
     const titleTag = document.querySelector("title");
     if (titleTag && !titleTag.dataset.fixed) {
       titleTag.innerText = titleTag.innerText.replace(
-        "theSimpLx",
+        "Simplx World",
         globalSettings.companyName,
       );
       titleTag.dataset.fixed = "1";
