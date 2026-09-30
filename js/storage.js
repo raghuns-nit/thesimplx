@@ -31,9 +31,29 @@ function hideLoader() {
 // ── Categories ────────────────────────────────────────────────
 
 async function loadCategories() {
-  const { data, error } = await sb.from('categories').select('*').order('sort_order', { ascending: true });
-  if (error) { console.error('loadCategories:', error); return []; }
-  return data || [];
+  const [categoryResult, productResult] = await Promise.all([
+    sb.from('categories').select('*').order('sort_order', { ascending: true }),
+    sb.from('products').select('category_id'),
+  ]);
+
+  if (categoryResult.error) {
+    console.error('loadCategories:', categoryResult.error);
+    return [];
+  }
+
+  const counts = {};
+  if (!productResult.error) {
+    (productResult.data || []).forEach((product) => {
+      counts[product.category_id] = (counts[product.category_id] || 0) + 1;
+    });
+  } else {
+    console.error('loadCategoryProductCounts:', productResult.error);
+  }
+
+  return (categoryResult.data || []).map((category) => ({
+    ...category,
+    product_count: counts[category.id] || 0,
+  }));
 }
 
 async function saveCategories(cats) {
