@@ -14,6 +14,7 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
     { to: '/', label: 'Categories' },
     { to: '/products', label: 'All Products' },
     { to: '/estimator', label: 'Estimator' },
+    { to: '/visual-search', label: 'Visual Search' },
     { to: '/contact', label: 'Contact Us' },
   ];
 

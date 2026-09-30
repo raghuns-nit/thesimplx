@@ -23,6 +23,7 @@ export interface Product {
   specifications: Record<string, unknown> | null;
   sort_order: number;
   created_at: string;
+  visual_signature: number[] | null;
 }
 
 export interface Settings {
