@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useSearchParams, useOutletContext } from 'react-router-dom';
 import { loadProducts, loadCategories } from '../../lib/data';
 import type { Product, Category } from '../../types';
-import { SlidersHorizontal, X, Search } from 'lucide-react';
+import { SlidersHorizontal, Search } from 'lucide-react';
 
 interface OutletContextType {
   openWhatsApp: (product?: Product | null) => void;
@@ -81,7 +81,10 @@ export default function ProductsPage() {
     <div>
       <div className="form-group">
         <label>Search</label>
-        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products..." />
+        <div style={{ position: 'relative' }}>
+          <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)', pointerEvents: 'none' }} />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products..." style={{ paddingLeft: '2.5rem' }} />
+        </div>
       </div>
       <div className="form-group">
         <label>Category</label>
@@ -132,7 +135,17 @@ export default function ProductsPage() {
 
       <div className="products-layout" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
         {/* Desktop sidebar */}
-        <aside style={{ width: '260px', flexShrink: 0, position: 'sticky', top: '120px' }} className="filter-sidebar-desktop">
+        <aside style={{
+          width: '260px',
+          flexShrink: 0,
+          position: 'sticky',
+          top: '120px',
+          background: 'var(--bg-white)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)',
+          padding: '1.5rem',
+          boxShadow: 'var(--shadow-card)',
+        }} className="filter-sidebar-desktop">
           <FilterPanel />
         </aside>
 
@@ -147,7 +160,7 @@ export default function ProductsPage() {
 
         {/* Mobile filter panel */}
         {showFilters && (
-          <div className="filter-sidebar-mobile" style={{ display: 'none', marginBottom: '1.5rem' }}>
+          <div className="filter-sidebar-mobile" style={{ display: 'none', marginBottom: '1.5rem', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1.5rem' }}>
             <FilterPanel />
           </div>
         )}
@@ -164,7 +177,7 @@ export default function ProductsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-3">
-              {filtered.map((p) => {
+              {filtered.map((p, idx) => {
                 const images = p.image_urls || [];
                 const imgSrc = images.length > 0 ? images[0] : '/placeholder.png';
                 const specs = p.specifications as Record<string, unknown> | null;
@@ -179,18 +192,20 @@ export default function ProductsPage() {
                     border: '1px solid var(--border)',
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s',
+                    animation: `fadeInSlow 0.4s ease-out ${Math.min(idx * 0.05, 0.4)}s both`,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
                   >
                     <Link to={`/product/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                      <div style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1' }}>
+                      <div style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1', background: 'var(--bg-light)' }}>
                         {onSale && (
                           <span style={{
-                            position: 'absolute', top: '0.5rem', left: '0.5rem', zIndex: 1,
-                            background: 'var(--danger)', color: '#fff', fontSize: '0.75rem', fontWeight: 700,
+                            position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 1,
+                            background: 'var(--danger)', color: '#fff', fontSize: '0.7rem', fontWeight: 700,
                             padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-full)',
+                            letterSpacing: '0.03em',
                           }}>
                             SALE{discount ? ` -${discount}%` : ''}
                           </span>
@@ -198,8 +213,10 @@ export default function ProductsPage() {
                         <img
                           src={imgSrc}
                           alt={p.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)' }}
                           onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                         />
                       </div>
                       <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', flex: 1 }}>

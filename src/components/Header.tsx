@@ -20,38 +20,73 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
   const hasInfoBar = settings?.phone || settings?.whatsapp || settings?.address;
 
   return (
-    <header style={{ background: 'var(--bg-white)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 50, boxShadow: '0 1px 10px rgba(0,0,0,0.06)' }}>
-      <div style={{ padding: '0.875rem 0' }}>
+    <header style={{
+      background: 'rgba(255, 255, 255, 0.82)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      borderBottom: '1px solid var(--border)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 50,
+      boxShadow: '0 1px 12px rgba(0,0,0,0.04)',
+    }}>
+      <div style={{ padding: '0.75rem 0' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link to="/" className="logo-container" style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/logo.svg" alt="Simplx World" style={{ width: '176px', height: 'auto', maxHeight: '48px', objectFit: 'contain' }} />
+            <img src="/logo.svg" alt="Simplx World" style={{ width: '176px', height: 'auto', maxHeight: '44px', objectFit: 'contain' }} />
           </Link>
-          <nav style={{ display: 'flex', gap: '0.125rem', alignItems: 'center' }}>
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                style={{
-                  color: location.pathname === item.to ? 'var(--primary)' : 'var(--text-muted)',
-                  fontWeight: location.pathname === item.to ? 600 : 500,
-                  fontSize: '0.875rem',
-                  padding: '0.4375rem 0.875rem',
-                  borderRadius: 'var(--radius-sm)',
-                  transition: 'background 0.15s, color 0.15s',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-light)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+            {navItems.map((item) => {
+              const active = location.pathname === item.to;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  style={{
+                    color: active ? 'var(--accent)' : 'var(--text-muted)',
+                    fontWeight: active ? 600 : 500,
+                    fontSize: '0.875rem',
+                    padding: '0.4375rem 0.875rem',
+                    borderRadius: 'var(--radius-sm)',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                    position: 'relative',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = 'var(--bg-light)';
+                      e.currentTarget.style.color = 'var(--text-main)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--text-muted)';
+                    }
+                  }}
+                >
+                  {item.label}
+                  {active && (
+                    <span style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      background: 'var(--accent)',
+                    }} />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </div>
 
       {hasInfoBar && (
-        <div style={{ background: 'var(--primary)', color: '#fff', fontSize: '0.85rem', padding: '0.4rem 0' }}>
+        <div style={{ background: 'var(--primary-dark)', color: '#fff', fontSize: '0.85rem', padding: '0.35rem 0' }}>
           <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
             {settings?.phone && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -62,16 +97,41 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
               </span>
             )}
             {settings?.whatsapp && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.5)', padding: '0.2rem 0.9rem', borderRadius: '20px' }}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  cursor: 'pointer',
+                  background: 'rgba(194, 112, 61, 0.25)',
+                  border: '1px solid rgba(194, 112, 61, 0.5)',
+                  padding: '0.2rem 0.9rem',
+                  borderRadius: '20px',
+                  transition: 'background 0.2s',
+                }}
                 onClick={onOpenWhatsApp}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(194, 112, 61, 0.4)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(194, 112, 61, 0.25)'; }}
               >
                 <MessageCircle size={14} /> WhatsApp
               </span>
             )}
             {settings?.address && (
               <span
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.5)', padding: '0.2rem 0.9rem', borderRadius: '20px' }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  padding: '0.2rem 0.9rem',
+                  borderRadius: '20px',
+                  transition: 'background 0.2s',
+                }}
                 onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(settings.address || '')}`, '_blank')}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
               >
                 <MapPin size={14} /> Location
               </span>

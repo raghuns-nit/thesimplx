@@ -55,7 +55,18 @@ export default function EstimatorPage() {
   return (
     <div className="container section fade-in" style={{ maxWidth: '700px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-        <Calculator size={48} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '64px',
+          height: '64px',
+          borderRadius: '50%',
+          background: 'var(--accent-light)',
+          marginBottom: '1rem',
+        }}>
+          <Calculator size={32} style={{ color: 'var(--accent)' }} />
+        </div>
         <h1>Tile Quantity Estimator</h1>
         <p className="text-muted mt-2">Calculate how many tiles you need for any room</p>
       </div>
@@ -65,8 +76,12 @@ export default function EstimatorPage() {
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius)',
         padding: '2rem',
+        boxShadow: 'var(--shadow-md)',
       }}>
-        <h3 style={{ marginBottom: '1.5rem' }}>Room Dimensions</h3>
+        <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ width: '4px', height: '1.25rem', background: 'var(--accent)', borderRadius: '2px' }} />
+          Room Dimensions
+        </h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
           <div className="form-group">
             <label>Length</label>
@@ -87,7 +102,10 @@ export default function EstimatorPage() {
           </div>
         </div>
 
-        <h3 style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>Tile Dimensions</h3>
+        <h3 style={{ marginTop: '1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ width: '4px', height: '1.25rem', background: 'var(--accent)', borderRadius: '2px' }} />
+          Tile Dimensions
+        </h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
           <div className="form-group">
             <label>Length</label>
@@ -108,7 +126,7 @@ export default function EstimatorPage() {
           </div>
         </div>
 
-        <button type="submit" className="btn btn-primary btn-block mt-4" style={{ padding: '1rem' }}>
+        <button type="submit" className="btn btn-accent btn-block mt-4" style={{ padding: '1rem', fontSize: '1rem' }}>
           Calculate Tiles Needed
         </button>
       </form>
@@ -120,24 +138,40 @@ export default function EstimatorPage() {
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius)',
           padding: '2rem',
+          boxShadow: 'var(--shadow-md)',
         }}>
-          <h3 style={{ marginBottom: '1.5rem' }}>Results</h3>
+          <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ width: '4px', height: '1.25rem', background: 'var(--success)', borderRadius: '2px' }} />
+            Results
+          </h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div style={{ padding: '1rem', background: 'var(--bg-light)', borderRadius: 'var(--radius-sm)' }}>
-              <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Room Area</p>
-              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>{result.area}</p>
+            <div style={{ padding: '1.25rem', background: 'var(--bg-light)', borderRadius: 'var(--radius-sm)', transition: 'transform 0.2s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Room Area</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', fontFamily: "'Sora', sans-serif" }}>{result.area}</p>
             </div>
-            <div style={{ padding: '1rem', background: 'var(--bg-light)', borderRadius: 'var(--radius-sm)' }}>
-              <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Exact Tiles</p>
-              <p style={{ fontSize: '1.5rem', fontWeight: 800 }}>{result.exact}</p>
+            <div style={{ padding: '1.25rem', background: 'var(--bg-light)', borderRadius: 'var(--radius-sm)', transition: 'transform 0.2s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Exact Tiles</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: "'Sora', sans-serif" }}>{result.exact}</p>
             </div>
-            <div style={{ padding: '1rem', background: 'var(--accent-light)', borderRadius: 'var(--radius-sm)' }}>
-              <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Wastage (10%)</p>
-              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-dark)' }}>{result.wastage}</p>
+            <div style={{ padding: '1.25rem', background: 'var(--accent-light)', borderRadius: 'var(--radius-sm)', transition: 'transform 0.2s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Wastage (10%)</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-dark)', fontFamily: "'Sora', sans-serif" }}>{result.wastage}</p>
             </div>
-            <div style={{ padding: '1rem', background: '#dcfce7', borderRadius: 'var(--radius-sm)' }}>
-              <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total to Buy</p>
-              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--success)' }}>{result.total}</p>
+            <div style={{ padding: '1.25rem', background: 'var(--success-light)', borderRadius: 'var(--radius-sm)', transition: 'transform 0.2s' }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total to Buy</p>
+              <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--success)', fontFamily: "'Sora', sans-serif" }}>{result.total}</p>
             </div>
           </div>
         </div>

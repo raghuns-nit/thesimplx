@@ -75,11 +75,14 @@ export default function ProductDetailPage() {
 
   return (
     <div className="container section fade-in">
-      <Link to="/products" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+      <Link to="/products" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)', transition: 'color 0.2s' }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+      >
         <ArrowLeft size={16} /> Back to Products
       </Link>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+      <div className="product-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
         {/* Images */}
         <div>
           <div style={{
@@ -88,6 +91,7 @@ export default function ProductDetailPage() {
             border: '1px solid var(--border)',
             background: 'var(--bg-white)',
             aspectRatio: '1',
+            boxShadow: 'var(--shadow-card)',
           }}>
             <img
               src={images[activeImg] || '/placeholder.png'}
@@ -110,9 +114,11 @@ export default function ProductDetailPage() {
                     objectFit: 'cover',
                     cursor: 'pointer',
                     borderRadius: 'var(--radius-sm)',
-                    border: activeImg === i ? '2px solid var(--primary)' : '2px solid var(--border)',
-                    transition: 'border-color 0.2s',
+                    border: activeImg === i ? '2px solid var(--accent)' : '2px solid var(--border)',
+                    transition: 'border-color 0.2s, transform 0.2s',
                   }}
+                  onMouseEnter={(e) => { if (activeImg !== i) e.currentTarget.style.transform = 'scale(1.05)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
                 />
               ))}
             </div>
@@ -130,7 +136,7 @@ export default function ProductDetailPage() {
           <h1 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>{product.name}</h1>
           {cat && <p className="text-muted" style={{ marginBottom: '1rem' }}>in {cat.name}</p>}
 
-          <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--primary)', marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1.5rem', fontFamily: "'Sora', sans-serif" }}>
             ₹{product.price || 0}
             <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-muted)' }}> / {product.unit || 'unit'}</span>
           </div>
@@ -142,11 +148,11 @@ export default function ProductDetailPage() {
           )}
 
           <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem' }}>
-            <button className="btn btn-whatsapp" style={{ flex: 1 }} onClick={() => openWhatsApp(product)}>
+            <button className="btn btn-whatsapp" style={{ flex: 1, padding: '0.75rem' }} onClick={() => openWhatsApp(product)}>
               Get Quote
             </button>
             {upiId && (
-              <button className="btn btn-primary" style={{ flex: 1 }} onClick={handlePay}>
+              <button className="btn btn-accent" style={{ flex: 1, padding: '0.75rem' }} onClick={handlePay}>
                 Pay Advance
               </button>
             )}
@@ -158,14 +164,15 @@ export default function ProductDetailPage() {
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius)',
             padding: '1.5rem',
+            boxShadow: 'var(--shadow-card)',
           }}>
             <h3 style={{ marginBottom: '1rem' }}>Specifications</h3>
             {specEntries.filter((s) => s.value).map((s, i) => (
               <div key={i} style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                padding: '0.5rem 0',
-                borderBottom: i < specEntries.length - 1 ? '1px solid var(--border)' : 'none',
+                padding: '0.6rem 0',
+                borderBottom: i < specEntries.filter((s) => s.value).length - 1 ? '1px solid var(--border)' : 'none',
               }}>
                 <span className="text-muted" style={{ fontSize: '0.875rem' }}>{s.label}</span>
                 <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.value}</span>
@@ -185,8 +192,9 @@ export default function ProductDetailPage() {
               borderRadius: 'var(--radius)',
               padding: '1.5rem',
               textAlign: 'center',
+              boxShadow: 'var(--shadow-card)',
             }}>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
                 Pay via UPI
               </p>
               <div style={{ display: 'inline-block', marginBottom: '0.75rem', padding: '0.75rem', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)' }}>
@@ -210,7 +218,7 @@ export default function ProductDetailPage() {
 
       <style>{`
         @media (max-width: 768px) {
-          .product-detail-grid { grid-template-columns: 1fr !important; }
+          .product-detail-grid { grid-template-columns: 1fr !important; gap: 1.5rem !important; }
         }
       `}</style>
     </div>

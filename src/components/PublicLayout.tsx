@@ -43,12 +43,12 @@ export default function PublicLayout() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(37, 211, 102, 0.4)',
+          boxShadow: '0 6px 20px rgba(37, 211, 102, 0.4)',
           zIndex: 100,
-          transition: 'transform 0.2s',
+          transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(37, 211, 102, 0.5)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(37, 211, 102, 0.4)'; }}
         aria-label="WhatsApp"
       >
         <MessageCircle size={26} />
