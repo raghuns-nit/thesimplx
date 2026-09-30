@@ -8,6 +8,7 @@ import { Package, Star, ArrowRight } from 'lucide-react';
 export default function HomePage() {
   const { settings } = useSettings();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categorySearch, setCategorySearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +19,9 @@ export default function HomePage() {
   }, []);
 
   const reviewUrl = settings?.google_review_url;
+  const visibleCategories = categories.filter((category) =>
+    category.name.toLowerCase().includes(categorySearch.trim().toLowerCase()),
+  );
 
   const sampleReviews = [
     { author: 'Rajesh Kumar', rating: 5, text: 'Excellent quality tiles and great service. The team helped us choose the perfect flooring for our entire house.' },
@@ -67,16 +71,31 @@ export default function HomePage() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <h2>Shop by Category</h2>
-            <p className="text-muted mt-2">Explore our wide range of construction materials</p>
+            <p className="text-muted mt-2">Search or choose from our available categories</p>
+            <div style={{ maxWidth: '520px', margin: '1.25rem auto 0', display: 'flex', gap: '0.75rem' }}>
+              <input
+                type="search"
+                list="available-categories"
+                value={categorySearch}
+                onChange={(event) => setCategorySearch(event.target.value)}
+                placeholder="Search categories..."
+                aria-label="Search categories"
+              />
+              <datalist id="available-categories">
+                {categories.map((category) => <option key={category.id} value={category.name} />)}
+              </datalist>
+            </div>
           </div>
 
           {loading ? (
             <div className="text-center text-muted" style={{ padding: '3rem' }}>Loading categories...</div>
           ) : categories.length === 0 ? (
             <div className="text-center text-muted" style={{ padding: '3rem' }}>No categories yet.</div>
+          ) : visibleCategories.length === 0 ? (
+            <div className="text-center text-muted" style={{ padding: '3rem' }}>No categories match your search.</div>
           ) : (
             <div className="grid grid-cols-4">
-              {categories.map((cat) => (
+              {visibleCategories.map((cat) => (
                 <Link
                   key={cat.id}
                   to={`/products?category=${cat.id}`}

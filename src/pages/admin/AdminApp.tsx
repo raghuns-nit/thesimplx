@@ -186,7 +186,7 @@ export default function AdminApp() {
 
         {/* Tab content */}
         <div style={{ flex: 1, padding: '2rem 1.5rem', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
-          {tab === 'dashboard' && <DashboardTab categories={categories} products={products} enquiries={enquiries} logs={logs} />}
+          {tab === 'dashboard' && <DashboardTab categories={categories} products={products} enquiries={enquiries} logs={logs} onNavigate={setTab} />}
           {tab === 'categories' && <CategoriesTab categories={categories} products={products} onRefresh={refreshAll} />}
           {tab === 'products' && <ProductsTab categories={categories} products={products} onRefresh={refreshAll} />}
           {tab === 'enquiries' && <EnquiriesTab enquiries={enquiries} onRefresh={refreshAll} />}
@@ -211,28 +211,40 @@ export default function AdminApp() {
 
 // ── Dashboard Tab ──────────────────────────────────────────
 
-function DashboardTab({ categories, products, enquiries, logs }: {
-  categories: Category[]; products: Product[]; enquiries: Enquiry[]; logs: ActivityLog[];
+function DashboardTab({ categories, products, enquiries, logs, onNavigate }: {
+  categories: Category[];
+  products: Product[];
+  enquiries: Enquiry[];
+  logs: ActivityLog[];
+  onNavigate: (tab: Tab) => void;
 }) {
   const pending = enquiries.filter((e) => e.status !== 'Closed').length;
   const stats = [
-    { label: 'Categories', value: categories.length, color: 'var(--primary)', icon: FolderTree },
-    { label: 'Products', value: products.length, color: 'var(--accent)', icon: Package },
-    { label: 'Pending Enquiries', value: pending, color: 'var(--warning)', icon: Mail },
-    { label: 'Activity Logs', value: logs.length, color: 'var(--success)', icon: History },
+    { label: 'Categories', value: categories.length, color: 'var(--primary)', icon: FolderTree, tab: 'categories' as Tab },
+    { label: 'Products', value: products.length, color: 'var(--accent)', icon: Package, tab: 'products' as Tab },
+    { label: 'Pending Enquiries', value: pending, color: 'var(--warning)', icon: Mail, tab: 'enquiries' as Tab },
+    { label: 'Activity Logs', value: logs.length, color: 'var(--success)', icon: History, tab: 'activity' as Tab },
   ];
 
   return (
     <div className="fade-in">
       <div className="grid grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} style={{
+          <button key={s.label} type="button" onClick={() => onNavigate(s.tab)} style={{
             background: 'var(--bg-white)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius)',
             padding: '1.5rem',
             boxShadow: 'var(--shadow-sm)',
-          }}>
+            cursor: 'pointer',
+            textAlign: 'left',
+            font: 'inherit',
+            color: 'inherit',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+          }}
+            onMouseEnter={(event) => { event.currentTarget.style.transform = 'translateY(-3px)'; event.currentTarget.style.boxShadow = 'var(--shadow-hover)'; }}
+            onMouseLeave={(event) => { event.currentTarget.style.transform = 'translateY(0)'; event.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+          >
             <div style={{
               width: '44px', height: '44px', borderRadius: 'var(--radius-sm)',
               background: s.color, color: '#fff',
@@ -243,7 +255,7 @@ function DashboardTab({ categories, products, enquiries, logs }: {
             </div>
             <p style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-main)' }}>{s.value}</p>
             <p className="text-muted" style={{ fontSize: '0.875rem' }}>{s.label}</p>
-          </div>
+          </button>
         ))}
       </div>
 

@@ -31,7 +31,7 @@ export default function WhatsAppModal({ isOpen, onClose, product }: WhatsAppModa
     try {
       const message = product
         ? `WhatsApp Quote Request for: ${product.name} (SKU: ${product.sku || '—'})`
-        : 'General WhatsApp Enquiry';
+        : 'General WhatsApp Enquiry from the website';
 
       await insertEnquiry({ name: name.trim(), email: null, phone: phone.trim(), message });
 
@@ -47,7 +47,10 @@ export default function WhatsAppModal({ isOpen, onClose, product }: WhatsAppModa
         ? `https://wa.me/${waNumber}?text=${encodeURIComponent(chatText)}`
         : `https://web.whatsapp.com/send?phone=${waNumber}&text=${encodeURIComponent(chatText)}`;
 
-      waTab!.location.href = waUrl;
+      if (!waTab) {
+        throw new Error('Unable to open WhatsApp window.');
+      }
+      waTab.location.href = waUrl;
       onClose();
       setName('');
       setPhone('');
@@ -68,7 +71,11 @@ export default function WhatsAppModal({ isOpen, onClose, product }: WhatsAppModa
           <button className="btn-close" onClick={onClose}><X size={20} /></button>
         </div>
         <div className="modal-body">
-          <p className="text-muted mb-4">Please provide your details so we can assist you faster.</p>
+          <p className="text-muted mb-4">
+            {product
+              ? `Tell us who you are and we will help with ${product.name}.`
+              : 'Tell us who you are and we will help with your general enquiry.'}
+          </p>
           <div className="form-group">
             <label>Your Name *</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Raja Rama" />
