@@ -32,7 +32,7 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
       boxShadow: '0 1px 12px rgba(0,0,0,0.04)',
     }}>
       <div style={{ padding: '0.75rem 0' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="container header-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0, overflow: 'hidden' }}>
           <Link to="/" className="logo-container" style={{ display: 'flex', alignItems: 'center' }}>
             <img src="/logo.svg" alt="Simplx World" style={{ width: '176px', height: 'auto', maxHeight: '44px', objectFit: 'contain' }} />
           </Link>

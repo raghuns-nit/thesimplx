@@ -305,6 +305,16 @@ textarea { resize: vertical; min-height: 100px; }
 /* ── Header mobile nav ── */
 .header-nav::-webkit-scrollbar { display: none; }
 @media (max-width: 640px) {
-  .header-nav { gap: 0 !important; }
+  .header-inner { gap: 0.75rem; }
+  .header-inner .logo-container { flex-shrink: 0; }
+  .header-inner .logo-container img { width: 132px !important; }
+  .header-nav { gap: 0 !important; min-width: 0; flex: 1; }
   .header-nav a { padding: 0.4375rem 0.625rem !important; font-size: 0.8rem !important; }
+}
+
+@media (max-width: 768px) {
+  .visual-search-workspace { display: flex !important; flex-direction: column; gap: 1rem !important; }
+  .visual-search-preview,
+  .visual-search-controls { width: 100% !important; }
+  .visual-search-preview { max-width: 420px; margin: 0 auto; }
 }

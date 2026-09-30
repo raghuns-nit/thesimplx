@@ -265,9 +265,9 @@ export default function VisualSearchPage() {
 
       {/* Uploaded Image Preview + Category Picker + Results */}
       {uploadedImage && (
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div className="visual-search-workspace" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
           {/* Preview panel */}
-          <div style={{ width: '280px', flexShrink: 0 }}>
+          <div className="visual-search-preview" style={{ width: '280px', flexShrink: 0 }}>
             <div style={{
               position: 'relative',
               borderRadius: 'var(--radius)',
@@ -307,7 +307,7 @@ export default function VisualSearchPage() {
           </div>
 
           {/* Right panel: category picker + results */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="visual-search-controls" style={{ flex: 1, minWidth: 0 }}>
             {/* Category Picker */}
             {!analyzing && uploadedSignature && !hasSearched && (
               <div style={{
