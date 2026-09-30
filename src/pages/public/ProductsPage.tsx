@@ -130,7 +130,7 @@ export default function ProductsPage() {
         <p className="text-muted mt-2">{filtered.length} Product{filtered.length === 1 ? '' : 's'} Found</p>
       </div>
 
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+      <div className="products-layout" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
         {/* Desktop sidebar */}
         <aside style={{ width: '260px', flexShrink: 0, position: 'sticky', top: '120px' }} className="filter-sidebar-desktop">
           <FilterPanel />
@@ -153,7 +153,7 @@ export default function ProductsPage() {
         )}
 
         {/* Product grid */}
-        <div style={{ flex: 1 }}>
+        <div className="product-results" style={{ flex: 1, minWidth: 0 }}>
           {loading ? (
             <div className="text-center text-muted" style={{ padding: '3rem' }}>Loading products...</div>
           ) : filtered.length === 0 ? (
@@ -240,10 +240,12 @@ export default function ProductsPage() {
       </div>
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
+          .products-layout { display: block !important; }
           .filter-sidebar-desktop { display: none !important; }
           .filter-toggle-mobile { display: flex !important; }
           .filter-sidebar-mobile { display: block !important; }
+          .product-results { width: 100%; margin-top: 0.5rem; }
         }
       `}</style>
     </div>
