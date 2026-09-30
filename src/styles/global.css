@@ -301,3 +301,10 @@ textarea { resize: vertical; min-height: 100px; }
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border);
 }
+
+/* ── Header mobile nav ── */
+.header-nav::-webkit-scrollbar { display: none; }
+@media (max-width: 640px) {
+  .header-nav { gap: 0 !important; }
+  .header-nav a { padding: 0.4375rem 0.625rem !important; font-size: 0.8rem !important; }
+}

@@ -26,7 +26,6 @@ export default function WhatsAppModal({ isOpen, onClose, product }: WhatsAppModa
     }
 
     show('Connecting...');
-    const waTab = window.open('about:blank', '_blank');
 
     try {
       const message = product
@@ -47,16 +46,12 @@ export default function WhatsAppModal({ isOpen, onClose, product }: WhatsAppModa
         ? `https://wa.me/${waNumber}?text=${encodeURIComponent(chatText)}`
         : `https://web.whatsapp.com/send?phone=${waNumber}&text=${encodeURIComponent(chatText)}`;
 
-      if (!waTab) {
-        throw new Error('Unable to open WhatsApp window.');
-      }
-      waTab.location.href = waUrl;
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
       onClose();
       setName('');
       setPhone('');
     } catch (error) {
       console.error('Failed to log WhatsApp lead:', error);
-      if (waTab) waTab.close();
       alert('There was an issue connecting. Please try again.');
     } finally {
       hide();

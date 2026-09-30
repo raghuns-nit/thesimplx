@@ -36,7 +36,7 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
           <Link to="/" className="logo-container" style={{ display: 'flex', alignItems: 'center' }}>
             <img src="/logo.svg" alt="Simplx World" style={{ width: '176px', height: 'auto', maxHeight: '44px', objectFit: 'contain' }} />
           </Link>
-          <nav style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+          <nav style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="header-nav">
             {navItems.map((item) => {
               const active = location.pathname === item.to;
               return (
