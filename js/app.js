@@ -88,6 +88,8 @@ async function initHome() {
   hideLoader();
   renderCategories(allCategories);
 
+  _initGoogleReviews();
+
   const searchEl = document.getElementById('categorySearch');
   if (searchEl) {
     searchEl.addEventListener('input', function () {
@@ -98,6 +100,36 @@ async function initHome() {
       renderCategories(filtered);
     });
   }
+}
+
+function _initGoogleReviews() {
+  const reviewUrl = globalSettings.google_review_url;
+  const section = document.getElementById('googleReviewSection');
+  if (!section || !reviewUrl) return;
+
+  section.style.display = '';
+
+  const linkEl = document.getElementById('reviewLink');
+  if (linkEl) linkEl.href = reviewUrl;
+
+  const sampleReviews = [
+    { author: 'Rajesh Kumar', rating: 5, text: 'Excellent quality tiles and great service. The team helped us choose the perfect flooring for our entire house.' },
+    { author: 'Priya Sharma', rating: 5, text: 'Very professional and fair pricing. The tile estimator tool was super helpful for calculating quantities.' },
+    { author: 'Mohammed Iqbal', rating: 4, text: 'Good collection of parking tiles. Delivery was on time. Would recommend to others.' },
+    { author: 'Lakshmi N.', rating: 5, text: 'Best building materials supplier in the area. Wide variety and competitive rates.' },
+    { author: 'Arjun Reddy', rating: 5, text: 'Outstanding customer support via WhatsApp. Got instant quotes and paid advance through UPI. Very convenient!' },
+    { author: 'Sneha Patil', rating: 4, text: 'Nice showroom with good display of products. Staff is knowledgeable and guided us well.' },
+  ];
+
+  const cards = sampleReviews.map((r) => `
+    <div class="review-card">
+      <div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+      <p class="review-text">"${r.text}"</p>
+      <p class="review-author">— ${r.author}</p>
+    </div>`).join('');
+
+  const track = document.getElementById('reviewTickerTrack');
+  if (track) track.innerHTML = cards + cards;
 }
 
 /** Render (or re-render) the category grid with the given list. */

@@ -42,9 +42,35 @@
             }
             .catalog-sidebar {
                 width: 100%;
-                position: static; /* Removes sticky behavior so users can scroll down */
+                position: static;
                 margin-bottom: 1rem;
+                display: none;
             }
+            .catalog-sidebar.open {
+                display: block;
+            }
+            .filter-toggle-btn {
+                display: flex !important;
+            }
+        }
+        .filter-toggle-btn {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+        .filter-toggle-btn:hover {
+            opacity: 0.9;
         }
     </style>
     </head>
@@ -101,8 +127,11 @@
                 </div>
             </div>
 
+            <button class="filter-toggle-btn" onclick="toggleFilters()">
+                &#9776; Filters
+            </button>
             <div class="catalog-layout">
-                <aside class="catalog-sidebar">
+                <aside class="catalog-sidebar" id="filterSidebar">
                     <h3 style="margin-bottom: 1.25rem">Filters</h3>
 
                     <!-- Brand -->
@@ -220,7 +249,7 @@
                 </div>
                 <div class="footer-bottom">
                     &copy; 2026 <span class="company-name">Simplx World</span>. All
-                    rights reserved. Built for GitHub Pages.
+                    rights reserved.
                 </div>
             </div>
         </footer>
@@ -256,12 +285,12 @@
         
       
         <!-- Local scripts first -->
-      <script src="js/supabase-client.js?v=8"></script>
-        <script src="js/storage.js?v=8"></script>
-        <script src="js/whatsapp.js?v=8"></script>
-        <script src="js/upi.js?v=8"></script>
-        <script src="js/app.js?v=8"></script>
-        <script src="js/filters.js?v=8"></script>
+      <script src="js/supabase-client.js?v=9"></script>
+        <script src="js/storage.js?v=9"></script>
+        <script src="js/whatsapp.js?v=9"></script>
+        <script src="js/upi.js?v=9"></script>
+        <script src="js/app.js?v=9"></script>
+        <script src="js/filters.js?v=9"></script>
     
     </body>
 </html>

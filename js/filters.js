@@ -113,6 +113,11 @@ function clearFilters() {
   applyFilters();
 }
 
+function toggleFilters() {
+  const sidebar = document.getElementById('filterSidebar');
+  if (sidebar) sidebar.classList.toggle('open');
+}
+
 // ── Safe onclick handlers ─────────────────────────────────────
 
 function handleQuote(id) {

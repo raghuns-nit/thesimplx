@@ -213,7 +213,7 @@ async function renderActivityTab() {
 
 async function initSettings() {
   const s = await loadSettings();
-  const fields = ['company_name', 'phone', 'whatsapp', 'email', 'address', 'upi_id'];
+  const fields = ['company_name', 'phone', 'whatsapp', 'email', 'address', 'upi_id', 'google_review_url'];
   fields.forEach((key) => {
     const el = document.getElementById('set_' + key);
     if (el && s[key]) el.value = s[key];
@@ -222,7 +222,7 @@ async function initSettings() {
 
 async function handleSaveSettings(e) {
   e.preventDefault();
-  const fields = ['company_name', 'phone', 'whatsapp', 'email', 'address', 'upi_id'];
+  const fields = ['company_name', 'phone', 'whatsapp', 'email', 'address', 'upi_id', 'google_review_url'];
   const settings = {};
   fields.forEach((key) => {
     const el = document.getElementById('set_' + key);
