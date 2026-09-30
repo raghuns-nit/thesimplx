@@ -18,6 +18,7 @@ export default function ProductDetailPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImg, setActiveImg] = useState(0);
+  const [showUpiModal, setShowUpiModal] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -63,7 +64,6 @@ export default function ProductDetailPage() {
 
   const upiId = settings?.upi_id;
   const companyName = settings?.company_name || 'Merchant';
-  const [showUpiModal, setShowUpiModal] = useState(false);
 
   const handlePay = () => {
     if (!upiId) {
