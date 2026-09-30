@@ -48,6 +48,15 @@
                 >
                     Sign In
                 </button>
+                <button
+                    id="signupBtn"
+                    type="button"
+                    class="btn btn-outline btn-block"
+                    style="padding: 0.75rem; font-size: 1rem; margin-top: 0.75rem"
+                    onclick="doSignup()"
+                >
+                    Create Admin Account
+                </button>
             </form>
 
             <p
@@ -66,13 +75,19 @@
         <script src="js/auth.js?v=3"></script>
         <script src="js/activity.js?v=3"></script>
         <script>
+            function showAuthError(message) {
+                const errEl = document.getElementById('errorMsg');
+                errEl.innerText = message;
+                errEl.style.display = 'block';
+            }
+
             async function doLogin(event) {
                 event.preventDefault();
                 const email = document.getElementById('loginEmail').value.trim();
                 const password = document.getElementById('loginPassword').value;
 
                 if (!email || !password) {
-                    alert('Please enter your email and password.');
+                    showAuthError('Please enter your email and password.');
                     return;
                 }
 
@@ -81,9 +96,24 @@
                     await logActivity('LOGIN', 'user', STATE.userEmail);
                     window.location.href = 'admin.html?v=3';
                 } else {
-                    const errEl = document.getElementById('errorMsg');
-                    errEl.innerText = result.message || 'Login failed.';
-                    errEl.style.display = 'block';
+                    showAuthError(result.message || 'Login failed.');
+                }
+            }
+
+            async function doSignup() {
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
+
+                if (!email || password.length < 6) {
+                    showAuthError('Enter an email and a password with at least 6 characters.');
+                    return;
+                }
+
+                const result = await handleSignUp(email, password);
+                if (result.success) {
+                    window.location.href = 'admin.html?v=3';
+                } else {
+                    showAuthError(result.message || 'Account creation failed.');
                 }
             }
 
