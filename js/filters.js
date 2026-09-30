@@ -162,24 +162,32 @@ function renderProducts() {
     const stock = p.stock_status || 'In Stock';
     const name = p.name || 'Unnamed Product';
     const brand = p.brand || 'Brand';
+    const specs = p.specifications || {};
+    const onSale = specs.onSale === true || specs.onSale === 'true';
+    const discount = specs.discount || '';
+    const saleBadge = onSale
+      ? `<span class=\"badge\" style=\"background:var(--danger); color:#fff; position:absolute; top:0.5rem; left:0.5rem; z-index:1; font-size:0.75rem; font-weight:700;\">SALE${discount ? ' -' + discount + '%' : ''}</span>`
+      : '';
 
     return `
-        <div class="card">
-            <a href="product.html?id=${p.id}" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">
-                <div class="card-img-container" style="position:relative; overflow:hidden;">
-                    <img src="${imgSrc}" class="card-img" alt="${name}" onerror="this.src='placeholder.png'">
+        <div class=\"card\">
+            <a href=\"product.html?id=${p.id}\" style=\"text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;\">
+                <div class=\"card-img-container\" style=\"position:relative; overflow:hidden;\">
+                    ${saleBadge}
+                    <img src=\"${imgSrc}\" class=\"card-img\" alt=\"${name}\" onerror=\"this.src='placeholder.png'\">
                 </div>
-                <div class="card-body">
-                    <span class="badge badge-warning mb-2" style="align-self:flex-start;">${brand}</span>
-                    <h3 class="card-title">${name}</h3>
-                    <div class="card-meta">
+                <div class=\"card-body\">
+                    <span class=\"badge badge-warning mb-2\" style=\"align-self:flex-start;\">${brand}</span>
+                    <h3 class=\"card-title\">${name}</h3>
+                    <div class=\"card-meta\">
                         ${p.sku ? `<span>SKU: ${p.sku}</span>` : ''}
                         ${p.size ? `<span>${p.size}</span>` : ''}
                     </div>
-                    <div class="card-price">
-                        &#8377;${price} <span style="font-size:0.875rem; font-weight:normal; color:var(--text-muted);">/ ${unit}</span>
+                    <div class=\"card-price\">
+                        &#8377;${price} <span style=\"font-size:0.875rem; font-weight:normal; color:var(--text-muted);\">/ ${unit}</span>
+                        ${onSale ? `<span style=\"color:var(--danger); font-size:0.8rem; font-weight:700; margin-left:0.5rem;\">${discount ? '-' + discount + '%' : 'ON SALE'}</span>` : ''}
                     </div>
-                    <p style="font-size:0.875rem; font-weight:600; margin-top:auto; ${_stockStyle(stock)}">${stock}</p>
+                    <p style=\"font-size:0.875rem; font-weight:600; margin-top:auto; ${_stockStyle(stock)}\">${stock}</p>
                 </div>
             </a>
             <div class="card-actions" style="padding:0 1rem 1rem;">
@@ -224,6 +232,18 @@ async function initProductPage() {
 
   const brandEl = document.getElementById('p_brand');
   if (brandEl) brandEl.innerText = product.brand || 'Brand';
+
+  const saleBadgeEl = document.getElementById('p_sale_badge');
+  if (saleBadgeEl) {
+    const specs = product.specifications || {};
+    const onSale = specs.onSale === true || specs.onSale === 'true';
+    if (onSale) {
+      saleBadgeEl.style.display = '';
+      saleBadgeEl.innerText = specs.discount ? 'ON SALE -' + specs.discount + '%' : 'ON SALE';
+    } else {
+      saleBadgeEl.style.display = 'none';
+    }
+  }
 
   document.getElementById('p_name').innerText = product.name || 'Product';
   document.getElementById('p_sku').innerText = product.sku || '';

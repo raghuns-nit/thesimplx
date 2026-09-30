@@ -28,7 +28,7 @@ function renderProductsTable() {
   if (!tbody) return;
 
   if (!productsData.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:2rem; color:var(--text-muted);">No products yet. Click "+ Add Product" to begin.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding:2rem; color:var(--text-muted);">No products yet. Click "+ Add Product" to begin.</td></tr>';
     return;
   }
 
@@ -40,6 +40,13 @@ function renderProductsTable() {
     // Find category name
     const cat = categoriesData.find((c) => c.id === p.category_id);
     const catName = cat ? cat.name : '—';
+
+    const specs = p.specifications || {};
+    const onSale = specs.onSale === true || specs.onSale === 'true';
+    const discount = specs.discount || '';
+    const saleCell = onSale
+      ? `<span class="badge badge-danger" style="background:var(--danger); color:#fff;">ON SALE${discount ? ' -' + discount + '%' : ''}</span>`
+      : '<span class="text-muted">—</span>';
 
     return `
         <tr>
@@ -58,6 +65,7 @@ function renderProductsTable() {
             <td>
                 <span class="badge ${getStockBadgeClass(stock)}">${stock}</span>
             </td>
+            <td>${saleCell}</td>
             <td class="actions">
                 <button class="btn btn-outline" style="padding:0.25rem 0.5rem;"
                         onclick="editProduct('${p.id}')">Edit</button>
@@ -121,9 +129,9 @@ function editProduct(id) {
   document.getElementById('prod_unit').value = p.unit || '';
 
   const onSaleEl = document.getElementById('prod_onSale');
-  if (onSaleEl) onSaleEl.checked = false;
   const discountEl = document.getElementById('prod_discount');
-  if (discountEl) discountEl.value = '';
+  if (onSaleEl && p.specifications) onSaleEl.checked = p.specifications.onSale === true || p.specifications.onSale === 'true';
+  if (discountEl && p.specifications) discountEl.value = p.specifications.discount || '';
 
   openModal('productModal');
 }
@@ -149,6 +157,11 @@ async function handleSaveProduct(e) {
   if (colorEl && colorEl.value.trim()) specs.color = colorEl.value.trim();
   if (thickEl && thickEl.value.trim()) specs.thickness = thickEl.value.trim();
   if (matEl && matEl.value.trim()) specs.material = matEl.value.trim();
+
+  const onSaleEl = document.getElementById('prod_onSale');
+  const discountEl = document.getElementById('prod_discount');
+  specs.onSale = onSaleEl ? onSaleEl.checked : false;
+  if (discountEl && discountEl.value.trim()) specs.discount = discountEl.value.trim();
 
   const fields = {
     category_id: categoryId,
