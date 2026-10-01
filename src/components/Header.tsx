@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { Phone, MessageCircle, MapPin, ChevronDown, Home } from 'lucide-react';
 
@@ -12,9 +12,9 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
   const location = useLocation();
   const groupRefs = useRef<(HTMLDetailsElement | null)[]>([]);
 
-  useEffect(() => {
+  const closeAllGroups = () => {
     groupRefs.current.forEach((el) => { if (el) el.open = false; });
-  }, [location.pathname]);
+  };
 
   const navGroups = [
     { label: 'Categories', items: [{ to: '/products', label: 'All Products' }] },
@@ -55,7 +55,7 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
                     {group.items.map((item) => {
                       const active = location.pathname === item.to;
                       return (
-                        <Link key={item.to} to={item.to} className="nav-dropdown-link" style={{ color: active ? 'var(--accent)' : 'var(--text-main)' }}>
+                        <Link key={item.to} to={item.to} className="nav-dropdown-link" style={{ color: active ? 'var(--accent)' : 'var(--text-main)' }} onClick={closeAllGroups}>
                           {item.label}
                         </Link>
                       );
