@@ -1019,6 +1019,14 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
   const [form, setForm] = useState({
     company_name: '', phone: '', whatsapp: '', email: '', address: '', upi_id: '', google_review_url: '',
   });
+  const [visualForm, setVisualForm] = useState({
+    threshold: 50,
+    maxResults: 12,
+    colorWeight: 70,
+    brightnessWeight: 15,
+    textureWeight: 10,
+    varianceWeight: 5,
+  });
   const { show, hide } = useLoader();
 
   useEffect(() => {
@@ -1032,13 +1040,38 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
         upi_id: settings.upi_id || '',
         google_review_url: settings.google_review_url || '',
       });
+      setVisualForm({
+        threshold: settings.visual_search_threshold ?? 50,
+        maxResults: settings.visual_search_max_results ?? 12,
+        colorWeight: settings.visual_search_color_weight ?? 70,
+        brightnessWeight: settings.visual_search_brightness_weight ?? 15,
+        textureWeight: settings.visual_search_texture_weight ?? 10,
+        varianceWeight: settings.visual_search_variance_weight ?? 5,
+      });
     }
   }, [settings]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (visualForm.threshold < 0 || visualForm.threshold > 100 || visualForm.maxResults < 1 || visualForm.maxResults > 50) {
+      alert('Keep the similarity threshold between 0 and 100, and results between 1 and 50.');
+      return;
+    }
+    const weightTotal = visualForm.colorWeight + visualForm.brightnessWeight + visualForm.textureWeight + visualForm.varianceWeight;
+    if ([visualForm.colorWeight, visualForm.brightnessWeight, visualForm.textureWeight, visualForm.varianceWeight].some((value) => value < 0) || weightTotal <= 0) {
+      alert('Similarity weights must be non-negative and at least one weight must be greater than zero.');
+      return;
+    }
     show('Saving settings...');
-    const ok = await saveSettings(form);
+    const ok = await saveSettings({
+      ...form,
+      visual_search_threshold: Number(visualForm.threshold.toFixed(2)),
+      visual_search_max_results: Math.round(visualForm.maxResults),
+      visual_search_color_weight: Number(visualForm.colorWeight.toFixed(2)),
+      visual_search_brightness_weight: Number(visualForm.brightnessWeight.toFixed(2)),
+      visual_search_texture_weight: Number(visualForm.textureWeight.toFixed(2)),
+      visual_search_variance_weight: Number(visualForm.varianceWeight.toFixed(2)),
+    });
     if (ok) {
       await logActivity('UPDATE_SETTINGS', 'settings', 'global');
       await onRefresh();
@@ -1078,6 +1111,27 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
             />
           </div>
         ))}
+        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+          <h3 style={{ marginBottom: '0.35rem' }}>Visual Search Settings</h3>
+          <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Adjust matching behavior without changing the app code. Weight values are relative percentages and are normalized automatically.</p>
+          <div className="form-group">
+            <label>Minimum Similarity Score (%)</label>
+            <input type="number" min="0" max="100" step="1" value={visualForm.threshold} onChange={(e) => setVisualForm({ ...visualForm, threshold: Number(e.target.value) })} />
+          </div>
+          <div className="form-group">
+            <label>Maximum Results</label>
+            <input type="number" min="1" max="50" step="1" value={visualForm.maxResults} onChange={(e) => setVisualForm({ ...visualForm, maxResults: Number(e.target.value) })} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
+            <div className="form-group"><label>Color Signature Weight</label><input type="number" min="0" step="1" value={visualForm.colorWeight} onChange={(e) => setVisualForm({ ...visualForm, colorWeight: Number(e.target.value) })} /></div>
+            <div className="form-group"><label>Brightness Weight</label><input type="number" min="0" step="1" value={visualForm.brightnessWeight} onChange={(e) => setVisualForm({ ...visualForm, brightnessWeight: Number(e.target.value) })} /></div>
+            <div className="form-group"><label>Texture Weight</label><input type="number" min="0" step="1" value={visualForm.textureWeight} onChange={(e) => setVisualForm({ ...visualForm, textureWeight: Number(e.target.value) })} /></div>
+            <div className="form-group"><label>Color Variation Weight</label><input type="number" min="0" step="1" value={visualForm.varianceWeight} onChange={(e) => setVisualForm({ ...visualForm, varianceWeight: Number(e.target.value) })} /></div>
+          </div>
+          <div style={{ background: 'var(--bg-light)', borderRadius: 'var(--radius-sm)', padding: '0.9rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            <strong style={{ color: 'var(--text-main)' }}>Signature reference</strong><br />Version {2} · 64 × 64 pixel sample · 30 HSV color buckets · browser-only image analysis
+          </div>
+        </div>
         <button type="submit" className="btn btn-primary" style={{ padding: '0.875rem 2rem' }}>Save Settings</button>
       </form>
     </div>

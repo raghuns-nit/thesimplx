@@ -17,6 +17,7 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(12);
 
   const [search, setSearch] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
@@ -62,6 +63,12 @@ export default function ProductsPage() {
       return true;
     });
   }, [products, search, filterCategory, filterBrand, filterFinish, filterStock]);
+
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [search, filterCategory, filterBrand, filterFinish, filterStock]);
+
+  const visibleProducts = filtered.slice(0, visibleCount);
 
   const clearFilters = () => {
     setSearch('');
@@ -176,8 +183,9 @@ export default function ProductsPage() {
               <button className="btn btn-outline" onClick={clearFilters}>Clear Filters</button>
             </div>
           ) : (
+            <>
             <div className="grid grid-cols-3">
-              {filtered.map((p, idx) => {
+              {visibleProducts.map((p, idx) => {
                 const images = p.image_urls || [];
                 const imgSrc = images.length > 0 ? images[0] : '/placeholder.png';
                 const specs = p.specifications as Record<string, unknown> | null;
@@ -252,6 +260,14 @@ export default function ProductsPage() {
                 );
               })}
             </div>
+            {visibleCount < filtered.length && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem' }}>
+                <button className="btn btn-outline" onClick={() => setVisibleCount((count) => count + 12)}>
+                  Load more products
+                </button>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>

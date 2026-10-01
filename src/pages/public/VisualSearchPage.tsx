@@ -9,9 +9,11 @@ import {
   deserializeSignature,
   SIGNATURE_VERSION,
   type ImageSignature,
+  type SimilarityWeights,
 } from '../../lib/imageSignature';
 import type { Product, Category } from '../../types';
-import { Upload, Search, ImageIcon, X, Loader2, Tag, Camera } from 'lucide-react';
+import { useSettings } from '../../context/SettingsContext';
+import { Upload, Search, ImageIcon, X, Loader2, Tag, Camera, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface OutletContextType {
   openWhatsApp: (product?: Product | null) => void;
@@ -22,10 +24,16 @@ interface MatchResult {
   score: number;
 }
 
-const MIN_MATCH_THRESHOLD = 50;
+const DEFAULT_VISUAL_SEARCH = {
+  threshold: 50,
+  maxResults: 12,
+  weights: { color: 70, brightness: 15, texture: 10, variance: 5 } satisfies SimilarityWeights,
+};
+const MAX_IMAGE_SIZE_MB = 10;
 
 export default function VisualSearchPage() {
   const { openWhatsApp } = useOutletContext<OutletContextType>();
+  const { settings } = useSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -38,6 +46,7 @@ export default function VisualSearchPage() {
   const [results, setResults] = useState<MatchResult[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [searchedCategory, setSearchedCategory] = useState<string>('');
@@ -46,6 +55,15 @@ export default function VisualSearchPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const narrowViewport = typeof window !== 'undefined' && window.innerWidth <= 1024;
+  const visualThreshold = settings?.visual_search_threshold ?? DEFAULT_VISUAL_SEARCH.threshold;
+  const visualMaxResults = settings?.visual_search_max_results ?? DEFAULT_VISUAL_SEARCH.maxResults;
+  const similarityWeights: SimilarityWeights = {
+    color: settings?.visual_search_color_weight ?? DEFAULT_VISUAL_SEARCH.weights.color,
+    brightness: settings?.visual_search_brightness_weight ?? DEFAULT_VISUAL_SEARCH.weights.brightness,
+    texture: settings?.visual_search_texture_weight ?? DEFAULT_VISUAL_SEARCH.weights.texture,
+    variance: settings?.visual_search_variance_weight ?? DEFAULT_VISUAL_SEARCH.weights.variance,
+  };
 
   // Load products and categories on mount, then auto-compute missing/stale signatures
   useEffect(() => {
@@ -108,24 +126,33 @@ export default function VisualSearchPage() {
           if (!deserialized) return null;
           return {
             product: p,
-            score: computeSimilarity(sig, deserialized),
+            score: computeSimilarity(sig, deserialized, similarityWeights),
           };
         })
         .filter((m): m is MatchResult => m !== null)
-        .filter((m) => m.score >= MIN_MATCH_THRESHOLD)
+        .filter((m) => m.score >= visualThreshold)
         .sort((a, b) => b.score - a.score)
-        .slice(0, 12);
+        .slice(0, visualMaxResults);
 
       setResults(matches);
       setHasSearched(true);
       setSearchedCategory(categoryFilter);
     },
-    [products],
+    [products, similarityWeights.color, similarityWeights.brightness, similarityWeights.texture, similarityWeights.variance, visualThreshold, visualMaxResults],
   );
 
   const handleFile = useCallback(
     async (file: File) => {
-      if (!file.type.startsWith('image/')) return;
+      const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!supportedTypes.includes(file.type)) {
+        setUploadError('Please choose a JPG, PNG, or WebP image.');
+        return;
+      }
+      if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+        setUploadError(`Please choose an image smaller than ${MAX_IMAGE_SIZE_MB} MB.`);
+        return;
+      }
+      setUploadError('');
       const url = URL.createObjectURL(file);
       setUploadedImage(url);
       setAnalyzing(true);
@@ -165,6 +192,7 @@ export default function VisualSearchPage() {
     setHasSearched(false);
     setSelectedCategory('');
     setSearchedCategory('');
+    setUploadError('');
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
@@ -243,21 +271,37 @@ export default function VisualSearchPage() {
             <p className="text-muted" style={{ fontSize: '0.9rem' }}>
               {isMobile ? 'JPG, PNG, WebP supported' : 'or click to browse — JPG, PNG, WebP supported'}
             </p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Supported file formats: JPG, PNG, WebP · Max size: {MAX_IMAGE_SIZE_MB} MB</p>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '0.75rem' }}>Your image is used only for this search session and will be deleted automatically afterward.</p>
+          </div>
+          {uploadError && (
+            <p role="alert" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: 'var(--danger)', fontSize: '0.8rem', marginTop: '0.75rem' }}><AlertCircle size={15} /> {uploadError}</p>
+          )}
+          <div style={{ marginTop: '1.5rem', background: 'var(--bg-light)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1.25rem' }}>
+            <h3 style={{ fontSize: '1rem', marginBottom: '0.35rem' }}>For better tile matches</h3>
+            <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Use a clear, well-lit photo where the tile pattern fills most of the frame.</p>
+            <div className="visual-search-examples">
+              <figure><img src="/visual-search-tile-clear.webp" alt="Clear straight-on tile photo example" /><figcaption><CheckCircle2 size={15} /> Clear and straight-on</figcaption></figure>
+              <figure><img src="/visual-search-tile-angle.webp" alt="Well-lit angled tile photo example" /><figcaption><CheckCircle2 size={15} /> Well-lit tile sample</figcaption></figure>
+              <figure><img src="/visual-search-tile-cluttered.webp" alt="Cluttered tile photo example" /><figcaption><AlertCircle size={15} /> Avoid clutter</figcaption></figure>
+              <figure><img src="/visual-search-tile-dark.webp" alt="Dark tile photo example" /><figcaption><AlertCircle size={15} /> Avoid dark blur</figcaption></figure>
+            </div>
           </div>
         </>
+
       )}
 
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         onChange={handleFileInput}
         style={{ display: 'none' }}
       />
       <input
         ref={cameraInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         capture="environment"
         onChange={handleFileInput}
         style={{ display: 'none' }}
@@ -265,9 +309,9 @@ export default function VisualSearchPage() {
 
       {/* Uploaded Image Preview + Category Picker + Results */}
       {uploadedImage && (
-        <div className="visual-search-workspace" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div className="visual-search-workspace" style={{ display: 'flex', flexDirection: narrowViewport ? 'column' : undefined, gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap', width: '100%', minWidth: 0 }}>
           {/* Preview panel */}
-          <div className="visual-search-preview" style={{ width: '280px', flexShrink: 0 }}>
+          <div className="visual-search-preview" style={{ width: narrowViewport ? '100%' : '280px', maxWidth: narrowViewport ? '420px' : undefined, flexShrink: 0 }}>
             <div style={{
               position: 'relative',
               borderRadius: 'var(--radius)',
@@ -307,7 +351,7 @@ export default function VisualSearchPage() {
           </div>
 
           {/* Right panel: category picker + results */}
-          <div className="visual-search-controls" style={{ flex: 1, minWidth: 0 }}>
+          <div className="visual-search-controls" style={{ flex: 1, minWidth: 0, width: narrowViewport ? '100%' : undefined }}>
             {/* Category Picker */}
             {!analyzing && uploadedSignature && !hasSearched && (
               <div style={{
@@ -424,7 +468,7 @@ export default function VisualSearchPage() {
                 {results.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     <ImageIcon size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-                    <p>No matches found in {searchedCategoryName} with at least {MIN_MATCH_THRESHOLD}% similarity.</p>
+                    <p>No matches found in {searchedCategoryName} with at least {visualThreshold}% similarity.</p>
                     <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
                       Try a different category or a clearer photo of the product.
                     </p>
@@ -434,7 +478,7 @@ export default function VisualSearchPage() {
                     <div style={{ marginBottom: '1rem' }}>
                       <p className="text-muted" style={{ fontSize: '0.875rem' }}>
                         {results.length} match{results.length === 1 ? '' : 'es'} found in {searchedCategoryName}
-                        {' '}({MIN_MATCH_THRESHOLD}%+ similarity)
+                        {' '}({visualThreshold}%+ similarity)
                       </p>
                     </div>
                     <div className="grid grid-cols-3">

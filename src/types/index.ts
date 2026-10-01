@@ -38,6 +38,12 @@ export interface Settings {
   upi_id: string | null;
   google_review_url: string | null;
   low_stock_threshold: number;
+  visual_search_threshold: number;
+  visual_search_max_results: number;
+  visual_search_color_weight: number;
+  visual_search_brightness_weight: number;
+  visual_search_texture_weight: number;
+  visual_search_variance_weight: number;
   updated_at: string | null;
 }
 

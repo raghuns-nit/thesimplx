@@ -188,7 +188,24 @@ export async function extractSignature(imageUrl: string): Promise<ImageSignature
  * Weighted: color histogram 70%, brightness histogram 15%, edge density 10%, color variance 5%.
  * Color is the dominant factor so opposite colors score very low.
  */
-export function computeSimilarity(a: ImageSignature, b: ImageSignature): number {
+export interface SimilarityWeights {
+  color: number;
+  brightness: number;
+  texture: number;
+  variance: number;
+}
+
+export function computeSimilarity(a: ImageSignature, b: ImageSignature, weights: SimilarityWeights = {
+  color: 70,
+  brightness: 15,
+  texture: 10,
+  variance: 5,
+}): number {
+  const totalWeight = Math.max(1, weights.color + weights.brightness + weights.texture + weights.variance);
+  const colorWeight = weights.color / totalWeight;
+  const brightnessWeight = weights.brightness / totalWeight;
+  const textureWeight = weights.texture / totalWeight;
+  const varianceWeight = weights.variance / totalWeight;
   // Color histogram intersection (1 = identical, 0 = no overlap)
   let colorInter = 0;
   for (let i = 0; i < 30; i++) {
@@ -208,10 +225,10 @@ export function computeSimilarity(a: ImageSignature, b: ImageSignature): number 
   const varSim = 1 - Math.abs(a.colorVariance - b.colorVariance);
 
   const score =
-    colorInter * 0.70 +
-    brightInter * 0.15 +
-    edgeSim * 0.10 +
-    varSim * 0.05;
+    colorInter * colorWeight +
+    brightInter * brightnessWeight +
+    edgeSim * textureWeight +
+    varSim * varianceWeight;
 
   return Math.round(Math.max(0, Math.min(1, score)) * 100);
 }
