@@ -6,10 +6,10 @@ import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSett
 import type { Category, Product, Enquiry, ActivityLog, Settings } from '../../types';
 import {
   LayoutDashboard, FolderTree, Package, Mail, Settings as SettingsIcon, History,
-  LogOut, Menu, X, Plus, Pencil, Trash2,
+  ClipboardList, LogOut, Menu, X, Plus, Pencil, Trash2, AlertTriangle, IndianRupee,
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'categories' | 'products' | 'enquiries' | 'settings' | 'activity';
+type Tab = 'dashboard' | 'categories' | 'products' | 'inventory' | 'enquiries' | 'settings' | 'activity';
 
 export default function AdminApp() {
   const navigate = useNavigate();
@@ -74,6 +74,7 @@ export default function AdminApp() {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'categories', label: 'Categories', icon: FolderTree },
     { id: 'products', label: 'Products', icon: Package },
+    { id: 'inventory', label: 'Inventory Management', icon: ClipboardList },
     { id: 'enquiries', label: 'Enquiries', icon: Mail },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
     { id: 'activity', label: 'Activity Logs', icon: History },
@@ -189,6 +190,7 @@ export default function AdminApp() {
           {tab === 'dashboard' && <DashboardTab categories={categories} products={products} enquiries={enquiries} logs={logs} onNavigate={setTab} />}
           {tab === 'categories' && <CategoriesTab categories={categories} products={products} onRefresh={refreshAll} />}
           {tab === 'products' && <ProductsTab categories={categories} products={products} onRefresh={refreshAll} />}
+          {tab === 'inventory' && <InventoryTab categories={categories} products={products} settings={settings} onRefresh={refreshAll} onOpenProducts={() => setTab('products')} />} 
           {tab === 'enquiries' && <EnquiriesTab enquiries={enquiries} onRefresh={refreshAll} />}
           {tab === 'settings' && <SettingsTab settings={settings} onRefresh={refreshAll} />}
           {tab === 'activity' && <ActivityTab logs={logs} />}
@@ -457,8 +459,10 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
   const [thickness, setThickness] = useState('');
   const [material, setMaterial] = useState('');
   const [stockStatus, setStockStatus] = useState('In Stock');
+  const [stockQuantity, setStockQuantity] = useState('0');
   const [price, setPrice] = useState('');
-  const [unit, setUnit] = useState('');
+  const [unit, setUnit] = useState('Sft');
+  const [liquidateStock, setLiquidateStock] = useState(false);
   const [onSale, setOnSale] = useState(false);
   const [discount, setDiscount] = useState('');
   const [images, setImages] = useState<FileList | null>(null);
@@ -474,8 +478,8 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
     setEditing(null);
     setName(''); setCategoryId(''); setBrand(''); setSize(''); setFinish('');
     setColor(''); setThickness(''); setMaterial('');
-    setStockStatus('In Stock'); setPrice(''); setUnit('');
-    setOnSale(false); setDiscount(''); setImages(null);
+    setStockStatus('In Stock'); setStockQuantity('0'); setPrice(''); setUnit('Sft');
+    setLiquidateStock(false); setOnSale(false); setDiscount(''); setImages(null);
     setShowModal(true);
   };
 
@@ -483,8 +487,8 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
     setEditing(p);
     setName(p.name || ''); setCategoryId(p.category_id || ''); setBrand(p.brand || '');
     setSize(p.size || ''); setFinish(p.finish || '');
-    setStockStatus(p.stock_status || 'In Stock'); setPrice(String(p.price || '')); setUnit(p.unit || '');
-    setImages(null);
+    setStockStatus(p.stock_status || 'In Stock'); setStockQuantity(String(p.stock_quantity ?? 0)); setPrice(String(p.price || '')); setUnit(p.unit || 'Sft');
+    setLiquidateStock(Boolean(p.liquidate_stock)); setImages(null);
     const specs = p.specifications as Record<string, unknown> | null;
     setColor((specs?.color as string) || '');
     setThickness((specs?.thickness as string) || '');
@@ -497,6 +501,12 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!categoryId) { alert('Please select a category.'); return; }
+    const parsedStockQuantity = Number.parseFloat(stockQuantity);
+    if (!Number.isFinite(parsedStockQuantity) || parsedStockQuantity < 0) {
+      alert('Enter a valid stock quantity of 0 or more.');
+      return;
+    }
+    if (!unit) { alert('Please select a unit.'); return; }
     show('Processing product...');
 
     try {
@@ -514,8 +524,10 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
         size: size.trim(),
         finish: finish.trim(),
         stock_status: stockStatus,
+        stock_quantity: Number(parsedStockQuantity.toFixed(2)),
+        liquidate_stock: liquidateStock,
         price: parseFloat(price) || null,
-        unit: unit.trim(),
+        unit,
         specifications: specs,
       };
 
@@ -598,14 +610,16 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
               <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Name</th>
               <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Category</th>
               <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Price</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Stock</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Stock Qty</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Status</th>
               <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>On Sale</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Liquidate Stock</th>
               <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {products.length === 0 ? (
-              <tr><td colSpan={8} className="text-center text-muted" style={{ padding: '2rem' }}>No products yet.</td></tr>
+              <tr><td colSpan={10} className="text-center text-muted" style={{ padding: '2rem' }}>No products yet.</td></tr>
             ) : products.map((p) => {
               const imgs = p.image_urls || [];
               const cat = categories.find((c) => c.id === p.category_id);
@@ -625,11 +639,15 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
                   </td>
                   <td style={{ padding: '0.75rem 1rem' }}>{cat ? cat.name : '—'}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>₹{p.price || 0} <small className="text-muted">/ {p.unit || 'unit'}</small></td>
+                  <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>{Number(p.stock_quantity ?? 0).toFixed(2)} <small className="text-muted">{p.unit || 'Sft'}</small></td>
                   <td style={{ padding: '0.75rem 1rem' }}><span className={`badge ${getStockBadge(p.stock_status)}`}>{p.stock_status || 'In Stock'}</span></td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     {isOnSale
                       ? <span className="badge badge-danger" style={{ background: 'var(--danger)', color: '#fff' }}>ON SALE{disc ? ` -${disc}%` : ''}</span>
                       : <span className="text-muted">—</span>}
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    {p.liquidate_stock ? <span className="badge badge-warning">Liquidate</span> : <span className="text-muted">—</span>}
                   </td>
                   <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
                     <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', marginRight: '0.5rem' }} onClick={() => openEdit(p)}><Pencil size={14} /></button>
@@ -688,8 +706,19 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
                     <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required min="0" step="0.01" placeholder="e.g., 45" />
                   </div>
                   <div className="form-group">
+                    <label>Stock *</label>
+                    <input type="number" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} required min="0" step="0.01" placeholder="e.g., 120.50" />
+                  </div>
+                  <div className="form-group">
                     <label>Unit *</label>
-                    <input type="text" value={unit} onChange={(e) => setUnit(e.target.value)} required placeholder="e.g., sq.ft, piece" />
+                    <select value={unit} onChange={(e) => setUnit(e.target.value)} required>
+                      <option value="Sft">Sft</option>
+                      <option value="Box">Box</option>
+                      <option value="Unit">Unit</option>
+                      <option value="KG">KG</option>
+                      <option value="Lt">Lt</option>
+                      <option value="Ft">Ft</option>
+                    </select>
                   </div>
                   <div className="form-group">
                     <label>Color</label>
@@ -706,6 +735,10 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
                   <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
                     <input type="checkbox" id="prod_onSale" checked={onSale} onChange={(e) => setOnSale(e.target.checked)} style={{ width: '20px', height: '20px' }} />
                     <label htmlFor="prod_onSale" style={{ margin: 0, fontWeight: 700, color: 'var(--danger)', cursor: 'pointer' }}>Mark as "On Sale"</label>
+                  </div>
+                  <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                    <input type="checkbox" id="prod_liquidate" checked={liquidateStock} onChange={(e) => setLiquidateStock(e.target.checked)} style={{ width: '20px', height: '20px' }} />
+                    <label htmlFor="prod_liquidate" style={{ margin: 0, fontWeight: 700, color: 'var(--warning)', cursor: 'pointer' }}>Mark as "Liquidate Stock"</label>
                   </div>
                   <div className="form-group">
                     <label>Discount %</label>
@@ -727,6 +760,146 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
       )}
     </div>
   );
+}
+
+// ── Inventory Management Tab ────────────────────────────────
+function InventoryTab({ categories, products, settings, onRefresh, onOpenProducts }: {
+  categories: Category[];
+  products: Product[];
+  settings: Settings | null;
+  onRefresh: () => Promise<void>;
+  onOpenProducts: () => void;
+}) {
+  const { show, hide } = useLoader();
+  const [query, setQuery] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [threshold, setThreshold] = useState(String(settings?.low_stock_threshold ?? 10));
+  const [stockInputs, setStockInputs] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setThreshold(String(settings?.low_stock_threshold ?? 10));
+  }, [settings?.low_stock_threshold]);
+
+  useEffect(() => {
+    setStockInputs(Object.fromEntries(products.map((product) => [product.id, String(product.stock_quantity ?? 0)])));
+  }, [products]);
+
+  const numericThreshold = Number.parseFloat(threshold);
+  const lowStockThreshold = Number.isFinite(numericThreshold) && numericThreshold >= 0 ? numericThreshold : 10;
+  const filteredProducts = products.filter((product) => {
+    const categoryMatches = !categoryId || product.category_id === categoryId;
+    const search = query.trim().toLowerCase();
+    const searchMatches = !search || [product.name, product.brand, product.size, product.sku]
+      .some((value) => value?.toLowerCase().includes(search));
+    return categoryMatches && searchMatches;
+  });
+  const totalStockValue = products.reduce((total, product) => total + (product.price || 0) * (product.stock_quantity || 0), 0);
+  const lowStockCount = products.filter((product) => (product.stock_quantity || 0) <= lowStockThreshold).length;
+
+  const saveThreshold = async () => {
+    const value = Number.parseFloat(threshold);
+    if (!Number.isFinite(value) || value < 0) {
+      setThreshold(String(settings?.low_stock_threshold ?? 10));
+      return;
+    }
+    const rounded = Number(value.toFixed(2));
+    setThreshold(String(rounded));
+    if (rounded === (settings?.low_stock_threshold ?? 10)) return;
+    show('Saving threshold...');
+    await saveSettings({ low_stock_threshold: rounded });
+    await onRefresh();
+    hide();
+  };
+
+  const saveStock = async (product: Product) => {
+    const value = Number.parseFloat(stockInputs[product.id] ?? '');
+    if (!Number.isFinite(value) || value < 0) {
+      setStockInputs((current) => ({ ...current, [product.id]: String(product.stock_quantity ?? 0) }));
+      return;
+    }
+    const rounded = Number(value.toFixed(2));
+    if (rounded === Number(product.stock_quantity ?? 0)) {
+      setStockInputs((current) => ({ ...current, [product.id]: rounded.toFixed(2) }));
+      return;
+    }
+    show('Saving stock...');
+    const { error } = await supabase.from('products').update({ stock_quantity: rounded }).eq('id', product.id);
+    if (error) {
+      alert('Could not update stock.');
+      setStockInputs((current) => ({ ...current, [product.id]: String(product.stock_quantity ?? 0) }));
+    } else {
+      await logActivity('UPDATE_STOCK', 'product', product.id);
+      await onRefresh();
+    }
+    hide();
+  };
+
+  return (
+    <div className="fade-in">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', borderTop: '3px solid var(--accent)', borderRadius: 'var(--radius)', padding: '1.25rem', boxShadow: 'var(--shadow-sm)' }}>
+          <Package size={22} style={{ color: 'var(--accent)', marginBottom: '0.75rem' }} />
+          <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Products</p>
+          <strong style={{ display: 'block', fontSize: '1.8rem', marginTop: '0.25rem' }}>{products.length}</strong>
+        </div>
+        <div style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', borderTop: '3px solid var(--success)', borderRadius: 'var(--radius)', padding: '1.25rem', boxShadow: 'var(--shadow-sm)' }}>
+          <IndianRupee size={22} style={{ color: 'var(--success)', marginBottom: '0.75rem' }} />
+          <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Stock Value</p>
+          <strong style={{ display: 'block', fontSize: '1.8rem', color: 'var(--success)', marginTop: '0.25rem' }}>₹{totalStockValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+        </div>
+        <div style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', borderTop: '3px solid var(--danger)', borderRadius: 'var(--radius)', padding: '1.25rem', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <AlertTriangle size={22} style={{ color: 'var(--danger)' }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0, fontSize: '0.7rem', textTransform: 'none', letterSpacing: 0 }}>
+              ≤ <input type="number" min="0" step="0.01" value={threshold} onChange={(e) => setThreshold(e.target.value)} onBlur={saveThreshold} style={{ width: '58px', padding: '0.25rem', textAlign: 'center' }} />
+            </label>
+          </div>
+          <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Low Stock Items</p>
+          <strong style={{ display: 'block', fontSize: '1.8rem', color: 'var(--danger)', marginTop: '0.25rem' }}>{lowStockCount}</strong>
+        </div>
+      </div>
+
+      <div style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+        <div style={{ padding: '1rem 1.25rem', background: 'var(--bg-light)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: 'auto' }}><ClipboardList size={20} /> Inventory List</h3>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search products..." style={{ maxWidth: '220px' }} />
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={{ width: 'auto' }}>
+            <option value="">All Categories</option>
+            {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          </select>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '760px' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-light)' }}>
+                {['Image', 'Product', 'Brand', 'Size', 'Price', 'Stock', 'Action'].map((heading) => <th key={heading} style={{ padding: '0.75rem 1rem', textAlign: heading === 'Action' ? 'right' : 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{heading}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProducts.length === 0 ? (
+                <tr><td colSpan={7} className="text-center text-muted" style={{ padding: '2rem' }}>No inventory items found.</td></tr>
+              ) : filteredProducts.map((product) => {
+                const quantity = product.stock_quantity || 0;
+                const isLow = quantity <= lowStockThreshold;
+                return (
+                  <tr key={product.id} style={{ borderBottom: '1px solid var(--border)', background: isLow ? 'var(--warning-light)' : undefined }}>
+                    <td style={{ padding: '0.75rem 1rem' }}><img src={product.image_urls?.[0] || '/placeholder.png'} alt={product.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }} /></td>
+                    <td style={{ padding: '0.75rem 1rem' }}><strong>{product.name}</strong><br /><small className="text-muted">{categories.find((category) => category.id === product.category_id)?.name || '—'}</small></td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{product.brand || '—'}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{product.size || '—'}</td>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>₹{(product.price || 0).toFixed(2)}<br /><small className="text-muted">/ {product.unit || 'Sft'}</small></td>
+                    <td style={{ padding: '0.75rem 1rem' }}><input type="number" min="0" step="0.01" value={stockInputs[product.id] ?? '0'} onChange={(e) => setStockInputs((current) => ({ ...current, [product.id]: e.target.value }))} onBlur={() => saveStock(product)} style={{ width: '92px', borderColor: isLow ? 'var(--danger)' : undefined }} /></td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}><button className="btn btn-outline" onClick={onOpenProducts} style={{ padding: '0.4rem 0.65rem' }}>Edit Product</button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
 }
 
 // ── Enquiries Tab ──────────────────────────────────────────

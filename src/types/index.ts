@@ -18,6 +18,8 @@ export interface Product {
   finish: string | null;
   price: number | null;
   unit: string | null;
+  stock_quantity: number;
+  liquidate_stock: boolean;
   stock_status: string | null;
   image_urls: string[] | null;
   specifications: Record<string, unknown> | null;
@@ -35,6 +37,7 @@ export interface Settings {
   address: string | null;
   upi_id: string | null;
   google_review_url: string | null;
+  low_stock_threshold: number;
   updated_at: string | null;
 }
 
