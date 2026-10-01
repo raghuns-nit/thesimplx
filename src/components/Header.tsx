@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { Phone, MessageCircle, MapPin, ChevronDown } from 'lucide-react';
 
@@ -9,6 +10,11 @@ interface HeaderProps {
 export default function Header({ onOpenWhatsApp }: HeaderProps) {
   const { settings } = useSettings();
   const location = useLocation();
+  const groupRefs = useRef<(HTMLDetailsElement | null)[]>([]);
+
+  useEffect(() => {
+    groupRefs.current.forEach((el) => { if (el) el.open = false; });
+  }, [location.pathname]);
 
   const navGroups = [
     { label: 'Categories', items: [{ to: '/products', label: 'All Products' }] },
@@ -35,10 +41,10 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
             <img src="/logo.svg" alt="Simplx World" style={{ width: '176px', height: 'auto', maxHeight: '44px', objectFit: 'contain' }} />
           </Link>
           <nav style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="header-nav">
-            {navGroups.map((group) => {
+            {navGroups.map((group, index) => {
               const activeGroup = group.items.some((item) => location.pathname === item.to);
               return (
-                <details key={group.label} className="nav-group">
+                <details key={group.label} className="nav-group" ref={(el) => { groupRefs.current[index] = el; }}>
                   <summary className="nav-group-summary" style={{ color: activeGroup ? 'var(--accent)' : 'var(--text-muted)' }}>
                     {group.label} <ChevronDown size={14} />
                   </summary>
