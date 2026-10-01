@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import { useSettings } from '../context/SettingsContext';
-import { Phone, MessageCircle, MapPin, ChevronDown } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, ChevronDown, Home } from 'lucide-react';
 
 interface HeaderProps {
   onOpenWhatsApp: () => void;
@@ -41,6 +41,9 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
             <img src="/logo.svg" alt="Simplx World" style={{ width: '176px', height: 'auto', maxHeight: '44px', objectFit: 'contain' }} />
           </Link>
           <nav style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="header-nav">
+            <Link to="/" className="nav-group-summary" style={{ color: location.pathname === '/' ? 'var(--accent)' : 'var(--text-muted)', display: 'inline-flex', textDecoration: 'none' }}>
+              <Home size={14} /> Home
+            </Link>
             {navGroups.map((group, index) => {
               const activeGroup = group.items.some((item) => location.pathname === item.to);
               return (
