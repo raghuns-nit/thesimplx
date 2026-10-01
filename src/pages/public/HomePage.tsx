@@ -19,6 +19,7 @@ export default function HomePage() {
   }, []);
 
   const reviewUrl = settings?.google_review_url;
+  const heroDescription = settings?.hero_description || 'Browse our catalog of tiles, sanitary ware, fittings, and construction supplies. Get instant WhatsApp quotes and pay via UPI.';
   const visibleCategories = categories.filter((category) =>
     category.name.toLowerCase().includes(categorySearch.trim().toLowerCase()),
   );
@@ -78,14 +79,13 @@ export default function HomePage() {
             background: 'rgba(194, 112, 61, 0.12)',
             border: '1px solid rgba(194, 112, 61, 0.3)',
           }}>
-            Premium Materials Catalog
+            Building Materials, Built for Quality
           </span>
-          <h1 style={{ color: '#fff', marginBottom: '1rem', maxWidth: '700px', margin: '0 auto 1rem' }}>
-            Building Materials,<br />Built for Quality
+          <h1 style={{ color: '#fff', marginBottom: '1rem', maxWidth: '700px', margin: '0 auto 1rem' }} aria-label="Simple Luxuries">
+            <span style={{ color: 'var(--accent)' }}>Sim</span>ple <span style={{ color: 'var(--accent)' }}>L</span>u<span style={{ color: 'var(--accent)' }}>x</span>uries
           </h1>
-          <p style={{ fontSize: '1.125rem', opacity: 0.7, maxWidth: '560px', margin: '0 auto 2.5rem', lineHeight: 1.7 }}>
-            Browse our catalog of tiles, sanitary ware, fittings, and construction supplies.
-            Get instant WhatsApp quotes and pay via UPI.
+          <p style={{ fontSize: '1.125rem', opacity: 0.7, maxWidth: '560px', margin: '0 auto 2.5rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+            {heroDescription}
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/products" className="btn btn-accent" style={{ padding: '0.875rem 2rem', fontSize: '1rem' }}>

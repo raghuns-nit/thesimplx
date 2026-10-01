@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
-import { Phone, MessageCircle, MapPin } from 'lucide-react';
+import { Phone, MessageCircle, MapPin, ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
   onOpenWhatsApp: () => void;
@@ -10,12 +10,10 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
   const { settings } = useSettings();
   const location = useLocation();
 
-  const navItems = [
-    { to: '/', label: 'Categories' },
-    { to: '/products', label: 'All Products' },
-    { to: '/estimator', label: 'Estimator' },
-    { to: '/visual-search', label: 'Visual Search' },
-    { to: '/contact', label: 'Contact Us' },
+  const navGroups = [
+    { label: 'Categories', items: [{ to: '/products', label: 'All Products' }] },
+    { label: 'Tools', items: [{ to: '/estimator', label: 'Estimator' }, { to: '/visual-search', label: 'Visual Search' }] },
+    { label: 'About Us', items: [{ to: '/we-are', label: 'We Are' }, { to: '/contact', label: 'Contact Us' }] },
   ];
 
   const hasInfoBar = settings?.phone || settings?.whatsapp || settings?.address;
@@ -32,54 +30,29 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
       boxShadow: '0 1px 12px rgba(0,0,0,0.04)',
     }}>
       <div style={{ padding: '0.75rem 0' }}>
-        <div className="container header-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0, overflow: 'hidden' }}>
+        <div className="container header-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0, overflow: 'visible' }}>
           <Link to="/" className="logo-container" style={{ display: 'flex', alignItems: 'center' }}>
             <img src="/logo.svg" alt="Simplx World" style={{ width: '176px', height: 'auto', maxHeight: '44px', objectFit: 'contain' }} />
           </Link>
           <nav style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="header-nav">
-            {navItems.map((item) => {
-              const active = location.pathname === item.to;
+            {navGroups.map((group) => {
+              const activeGroup = group.items.some((item) => location.pathname === item.to);
               return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  style={{
-                    color: active ? 'var(--accent)' : 'var(--text-muted)',
-                    fontWeight: active ? 600 : 500,
-                    fontSize: '0.875rem',
-                    padding: '0.4375rem 0.875rem',
-                    borderRadius: 'var(--radius-sm)',
-                    transition: 'all 0.2s',
-                    whiteSpace: 'nowrap',
-                    position: 'relative',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.background = 'var(--bg-light)';
-                      e.currentTarget.style.color = 'var(--text-main)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = 'var(--text-muted)';
-                    }
-                  }}
-                >
-                  {item.label}
-                  {active && (
-                    <span style={{
-                      position: 'absolute',
-                      bottom: '-2px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: '4px',
-                      height: '4px',
-                      borderRadius: '50%',
-                      background: 'var(--accent)',
-                    }} />
-                  )}
-                </Link>
+                <details key={group.label} className="nav-group">
+                  <summary className="nav-group-summary" style={{ color: activeGroup ? 'var(--accent)' : 'var(--text-muted)' }}>
+                    {group.label} <ChevronDown size={14} />
+                  </summary>
+                  <div className="nav-dropdown">
+                    {group.items.map((item) => {
+                      const active = location.pathname === item.to;
+                      return (
+                        <Link key={item.to} to={item.to} className="nav-dropdown-link" style={{ color: active ? 'var(--accent)' : 'var(--text-main)' }}>
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </details>
               );
             })}
           </nav>

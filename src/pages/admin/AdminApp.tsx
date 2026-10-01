@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useLoader } from '../../context/LoaderContext';
 import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSettings, saveSettings, insertEnquiry, updateEnquiry, logActivity, uploadImage } from '../../lib/data';
-import type { Category, Product, Enquiry, ActivityLog, Settings } from '../../types';
+import type { Category, Product, Enquiry, ActivityLog, Settings, AboutProfile } from '../../types';
 import {
   LayoutDashboard, FolderTree, Package, Mail, Settings as SettingsIcon, History,
   ClipboardList, LogOut, Menu, X, Plus, Pencil, Trash2, AlertTriangle, IndianRupee,
 } from 'lucide-react';
 
 type Tab = 'dashboard' | 'categories' | 'products' | 'inventory' | 'enquiries' | 'settings' | 'activity';
+type ProfileDraft = AboutProfile & { file: File | null };
 
 export default function AdminApp() {
   const navigate = useNavigate();
@@ -1027,6 +1028,9 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
     textureWeight: 10,
     varianceWeight: 5,
   });
+  const [heroDescription, setHeroDescription] = useState('');
+  const [aboutHistory, setAboutHistory] = useState('');
+  const [profiles, setProfiles] = useState<ProfileDraft[]>([]);
   const { show, hide } = useLoader();
 
   useEffect(() => {
@@ -1048,6 +1052,14 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
         textureWeight: settings.visual_search_texture_weight ?? 10,
         varianceWeight: settings.visual_search_variance_weight ?? 5,
       });
+      setHeroDescription(settings.hero_description || '');
+      setAboutHistory(settings.about_history || '');
+      setProfiles((settings.about_profiles || []).slice(0, 4).map((profile) => ({
+        name: profile.name || '',
+        role: profile.role || '',
+        image_url: profile.image_url || '',
+        file: null,
+      })));
     }
   }, [settings]);
 
@@ -1063,8 +1075,29 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
       return;
     }
     show('Saving settings...');
+    const savedProfiles: AboutProfile[] = [];
+    for (let index = 0; index < profiles.length; index += 1) {
+      const profile = profiles[index];
+      let imageUrl = profile.image_url;
+      if (profile.file) {
+        const extension = profile.file.name.split('.').pop() || 'jpg';
+        const uploadedUrl = await uploadImage(profile.file, 'about', `management-${index + 1}.${extension}`);
+        if (!uploadedUrl) {
+          alert(`Could not upload management profile ${index + 1}.`);
+          hide();
+          return;
+        }
+        imageUrl = uploadedUrl;
+      }
+      if (profile.name.trim() || profile.role.trim() || imageUrl) {
+        savedProfiles.push({ name: profile.name.trim(), role: profile.role.trim(), image_url: imageUrl });
+      }
+    }
     const ok = await saveSettings({
       ...form,
+      hero_description: heroDescription.trim(),
+      about_history: aboutHistory.trim(),
+      about_profiles: savedProfiles,
       visual_search_threshold: Number(visualForm.threshold.toFixed(2)),
       visual_search_max_results: Math.round(visualForm.maxResults),
       visual_search_color_weight: Number(visualForm.colorWeight.toFixed(2)),
@@ -1130,6 +1163,38 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
           </div>
           <div style={{ background: 'var(--bg-light)', borderRadius: 'var(--radius-sm)', padding: '0.9rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
             <strong style={{ color: 'var(--text-main)' }}>Signature reference</strong><br />Version {2} · 64 × 64 pixel sample · 30 HSV color buckets · browser-only image analysis
+          </div>
+        </div>
+        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+          <h3 style={{ marginBottom: '0.35rem' }}>Landing Page and About Us</h3>
+          <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Update the short hero message, firm history, and up to four management profiles shown on the public We Are page.</p>
+          <div className="form-group">
+            <label>Hero Supporting Text</label>
+            <textarea value={heroDescription} onChange={(e) => setHeroDescription(e.target.value)} rows={3} placeholder="Describe what customers can find in your catalog..." />
+          </div>
+          <div className="form-group">
+            <label>Firm History</label>
+            <textarea value={aboutHistory} onChange={(e) => setAboutHistory(e.target.value)} rows={7} placeholder="Share the story and history of the firm..." />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
+            <label style={{ margin: 0 }}>Management Profiles (up to 4)</label>
+            {profiles.length < 4 && <button type="button" className="btn btn-outline" onClick={() => setProfiles([...profiles, { name: '', role: '', image_url: '', file: null }])} style={{ padding: '0.4rem 0.7rem' }}>Add Profile</button>}
+          </div>
+          {profiles.length === 0 && <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Add a profile to show management information on the We Are page.</p>}
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {profiles.map((profile, index) => (
+              <div key={index} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '1rem', background: 'var(--bg-light)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <strong>Profile {index + 1}</strong>
+                  <button type="button" className="btn btn-outline" onClick={() => setProfiles(profiles.filter((_, profileIndex) => profileIndex !== index))} style={{ padding: '0.25rem 0.5rem', color: 'var(--danger)' }}>Remove</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
+                  <div className="form-group"><label>Name</label><input type="text" value={profile.name} onChange={(e) => setProfiles(profiles.map((item, profileIndex) => profileIndex === index ? { ...item, name: e.target.value } : item))} placeholder="Person's name" /></div>
+                  <div className="form-group"><label>Role</label><input type="text" value={profile.role} onChange={(e) => setProfiles(profiles.map((item, profileIndex) => profileIndex === index ? { ...item, role: e.target.value } : item))} placeholder="Role or designation" /></div>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}><label>Profile Image</label><input type="file" accept="image/*" onChange={(e) => setProfiles(profiles.map((item, profileIndex) => profileIndex === index ? { ...item, file: e.target.files?.[0] || null } : item))} />{profile.image_url && <small className="text-muted">Existing image will remain unless a new image is selected.</small>}</div>
+              </div>
+            ))}
           </div>
         </div>
         <button type="submit" className="btn btn-primary" style={{ padding: '0.875rem 2rem' }}>Save Settings</button>

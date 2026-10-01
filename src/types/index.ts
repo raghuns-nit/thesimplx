@@ -28,6 +28,12 @@ export interface Product {
   visual_signature: number[] | null;
 }
 
+export interface AboutProfile {
+  name: string;
+  role: string;
+  image_url: string;
+}
+
 export interface Settings {
   id: number;
   company_name: string | null;
@@ -44,6 +50,9 @@ export interface Settings {
   visual_search_brightness_weight: number;
   visual_search_texture_weight: number;
   visual_search_variance_weight: number;
+  hero_description: string | null;
+  about_history: string | null;
+  about_profiles: AboutProfile[] | null;
   updated_at: string | null;
 }
 
