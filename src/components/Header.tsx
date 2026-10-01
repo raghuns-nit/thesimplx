@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { Phone, MessageCircle, MapPin, ChevronDown, Home } from 'lucide-react';
 
@@ -10,11 +10,23 @@ interface HeaderProps {
 export default function Header({ onOpenWhatsApp }: HeaderProps) {
   const { settings } = useSettings();
   const location = useLocation();
-  const groupRefs = useRef<(HTMLDetailsElement | null)[]>([]);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
 
-  const closeAllGroups = () => {
-    groupRefs.current.forEach((el) => { if (el) el.open = false; });
-  };
+  useEffect(() => {
+    setOpenGroup(null);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setOpenGroup(null);
+      }
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, []);
 
   const navGroups = [
     { label: 'Categories', items: [{ to: '/products', label: 'All Products' }] },
@@ -40,28 +52,31 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
           <Link to="/" className="logo-container" style={{ display: 'flex', alignItems: 'center' }}>
             <img src="/logo.svg" alt="Simplx World" style={{ width: '176px', height: 'auto', maxHeight: '44px', objectFit: 'contain' }} />
           </Link>
-          <nav style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="header-nav">
-            <Link to="/" className="nav-group-summary" style={{ color: location.pathname === '/' ? 'var(--accent)' : 'var(--text-muted)', display: 'inline-flex', textDecoration: 'none' }}>
+          <nav ref={navRef} style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="header-nav" onClick={(event) => event.stopPropagation()}>
+            <Link to="/" className="nav-group-summary" style={{ color: location.pathname === '/' ? 'var(--accent)' : 'var(--text-muted)', display: 'inline-flex', textDecoration: 'none' }} onClick={() => setOpenGroup(null)}>
               <Home size={14} /> Home
             </Link>
-            {navGroups.map((group, index) => {
+            {navGroups.map((group) => {
               const activeGroup = group.items.some((item) => location.pathname === item.to);
+              const isOpen = openGroup === group.label;
               return (
-                <details key={group.label} className="nav-group" ref={(el) => { groupRefs.current[index] = el; }}>
-                  <summary className="nav-group-summary" style={{ color: activeGroup ? 'var(--accent)' : 'var(--text-muted)' }}>
+                <div key={group.label} className="nav-group">
+                  <button type="button" className="nav-group-summary" style={{ color: activeGroup ? 'var(--accent)' : 'var(--text-muted)' }} onClick={() => setOpenGroup(isOpen ? null : group.label)} aria-expanded={isOpen}>
                     {group.label} <ChevronDown size={14} />
-                  </summary>
-                  <div className="nav-dropdown">
-                    {group.items.map((item) => {
-                      const active = location.pathname === item.to;
-                      return (
-                        <Link key={item.to} to={item.to} className="nav-dropdown-link" style={{ color: active ? 'var(--accent)' : 'var(--text-main)' }} onClick={closeAllGroups}>
-                          {item.label}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </details>
+                  </button>
+                  {isOpen && (
+                    <div className="nav-dropdown">
+                      {group.items.map((item) => {
+                        const active = location.pathname === item.to;
+                        return (
+                          <Link key={item.to} to={item.to} className="nav-dropdown-link" style={{ color: active ? 'var(--accent)' : 'var(--text-main)' }} onClick={() => setOpenGroup(null)}>
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </nav>
