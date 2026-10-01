@@ -32,6 +32,7 @@ export interface AboutProfile {
   name: string;
   role: string;
   image_url: string;
+  bio?: string;
 }
 
 export interface Settings {

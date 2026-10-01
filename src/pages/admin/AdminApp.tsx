@@ -1058,6 +1058,7 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
         name: profile.name || '',
         role: profile.role || '',
         image_url: profile.image_url || '',
+        bio: profile.bio || '',
         file: null,
       })));
     }
@@ -1090,7 +1091,7 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
         imageUrl = uploadedUrl;
       }
       if (profile.name.trim() || profile.role.trim() || imageUrl) {
-        savedProfiles.push({ name: profile.name.trim(), role: profile.role.trim(), image_url: imageUrl });
+        savedProfiles.push({ name: profile.name.trim(), role: profile.role.trim(), image_url: imageUrl, bio: profile.bio?.trim() || '' });
       }
     }
     const ok = await saveSettings({
@@ -1178,7 +1179,7 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '0.75rem' }}>
             <label style={{ margin: 0 }}>Management Profiles (up to 4)</label>
-            {profiles.length < 4 && <button type="button" className="btn btn-outline" onClick={() => setProfiles([...profiles, { name: '', role: '', image_url: '', file: null }])} style={{ padding: '0.4rem 0.7rem' }}>Add Profile</button>}
+            {profiles.length < 4 && <button type="button" className="btn btn-outline" onClick={() => setProfiles([...profiles, { name: '', role: '', image_url: '', bio: '', file: null }])} style={{ padding: '0.4rem 0.7rem' }}>Add Profile</button>}
           </div>
           {profiles.length === 0 && <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Add a profile to show management information on the We Are page.</p>}
           <div style={{ display: 'grid', gap: '1rem' }}>
@@ -1192,6 +1193,7 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
                   <div className="form-group"><label>Name</label><input type="text" value={profile.name} onChange={(e) => setProfiles(profiles.map((item, profileIndex) => profileIndex === index ? { ...item, name: e.target.value } : item))} placeholder="Person's name" /></div>
                   <div className="form-group"><label>Role</label><input type="text" value={profile.role} onChange={(e) => setProfiles(profiles.map((item, profileIndex) => profileIndex === index ? { ...item, role: e.target.value } : item))} placeholder="Role or designation" /></div>
                 </div>
+                <div className="form-group"><label>Profile</label><textarea value={profile.bio || ''} onChange={(e) => setProfiles(profiles.map((item, profileIndex) => profileIndex === index ? { ...item, bio: e.target.value } : item))} rows={4} placeholder="Write a short profile..." /></div>
                 <div className="form-group" style={{ marginBottom: 0 }}><label>Profile Image</label><input type="file" accept="image/*" onChange={(e) => setProfiles(profiles.map((item, profileIndex) => profileIndex === index ? { ...item, file: e.target.files?.[0] || null } : item))} />{profile.image_url && <small className="text-muted">Existing image will remain unless a new image is selected.</small>}</div>
               </div>
             ))}

@@ -43,15 +43,21 @@ export default function AboutPage() {
               <h2>Management</h2>
               <p className="text-muted" style={{ marginTop: '0.5rem' }}>The people behind our commitment to quality.</p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1.25rem', maxWidth: '1000px', margin: '0 auto' }}>
+            <div className="about-profiles-grid">
               {profiles.map((profile, index) => (
                 <article key={`${profile.name}-${index}`} style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                  <div style={{ aspectRatio: '1', background: 'var(--bg-page)' }}>
-                    <img src={profile.image_url || '/placeholder.png'} alt={profile.name || 'Management profile'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(event) => { (event.target as HTMLImageElement).src = '/placeholder.png'; }} />
+                  <div style={{ height: '180px', padding: '0.75rem', background: 'var(--bg-page)' }}>
+                    <img src={profile.image_url || '/placeholder.png'} alt={profile.name || 'Management profile'} style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', borderRadius: 'var(--radius-sm)' }} onError={(event) => { (event.target as HTMLImageElement).src = '/placeholder.png'; }} />
                   </div>
                   <div style={{ padding: '1rem' }}>
                     <h3 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{profile.name || 'Management'}</h3>
-                    <p className="text-muted" style={{ fontSize: '0.82rem' }}>{profile.role || 'Leadership team'}</p>
+                    <p className="text-muted" style={{ fontSize: '0.82rem', marginBottom: profile.bio ? '0.65rem' : 0 }}>{profile.role || 'Leadership team'}</p>
+                    {profile.bio && (
+                      <details>
+                        <summary style={{ color: 'var(--accent)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>Read profile</summary>
+                        <p style={{ marginTop: '0.6rem', fontSize: '0.82rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{profile.bio}</p>
+                      </details>
+                    )}
                   </div>
                 </article>
               ))}
