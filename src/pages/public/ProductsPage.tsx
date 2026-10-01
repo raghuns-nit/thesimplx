@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useSearchParams, useOutletContext } from 'react-router-dom';
 import { loadProducts, loadCategories } from '../../lib/data';
 import type { Product, Category } from '../../types';
-import { SlidersHorizontal, Search, ArrowLeft } from 'lucide-react';
+import { SlidersHorizontal, Search } from 'lucide-react';
 
 interface OutletContextType {
   openWhatsApp: (product?: Product | null) => void;
@@ -136,9 +136,6 @@ export default function ProductsPage() {
   return (
     <div className="container section fade-in">
       <div style={{ marginBottom: '1.5rem' }}>
-        <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: 'var(--accent)', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.75rem', textDecoration: 'none' }}>
-          <ArrowLeft size={16} /> Back to Categories
-        </Link>
         <h1>All Products</h1>
         <p className="text-muted mt-2">{filtered.length} Product{filtered.length === 1 ? '' : 's'} Found</p>
       </div>
