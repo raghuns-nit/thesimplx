@@ -82,7 +82,7 @@ export default function HomePage() {
             Building Materials, Built for Quality
           </span>
           <h1 style={{ color: '#fff', marginBottom: '1rem', maxWidth: '700px', margin: '0 auto 1rem' }} aria-label="Simple Luxuries">
-            <span style={{ color: 'var(--accent)' }}>Sim</span>ple <span style={{ color: 'var(--accent)' }}>L</span>u<span style={{ color: 'var(--accent)' }}>x</span>uries
+            <span style={{ color: 'var(--accent)' }}>Simp</span>le <span style={{ color: 'var(--accent)' }}>L</span>u<span style={{ color: 'var(--accent)' }}>x</span>uries
           </h1>
           <p style={{ fontSize: '1.125rem', opacity: 0.7, maxWidth: '560px', margin: '0 auto 2.5rem', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
             {heroDescription}
