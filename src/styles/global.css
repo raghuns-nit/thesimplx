@@ -361,11 +361,18 @@ textarea { resize: vertical; min-height: 100px; }
   .about-profiles-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
-  .header-inner { gap: 0.75rem; }
+  .header-inner { gap: 0.5rem; flex-wrap: wrap; }
   .header-inner .logo-container { flex-shrink: 0; }
   .header-inner .logo-container img { width: 132px !important; }
-  .header-nav { gap: 0 !important; min-width: 0; flex: 1; overflow-x: auto !important; }
-  .nav-group-summary { padding: 0.4375rem 0.625rem; font-size: 0.8rem; }
+  .header-nav {
+    order: 2;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between;
+    overflow: visible !important;
+  }
+  .nav-group-summary { padding: 0.4rem 0.25rem; font-size: 0.75rem; }
   .nav-dropdown { right: auto; left: 0; }
 }
 
