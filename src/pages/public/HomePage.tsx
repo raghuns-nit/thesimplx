@@ -94,6 +94,9 @@ export default function HomePage() {
             <Link to="/estimator" className="btn btn-outline" style={{ borderColor: 'rgba(255,255,255,0.25)', color: '#fff', padding: '0.875rem 2rem', fontSize: '1rem' }}>
               Tile Estimator
             </Link>
+            <Link to="/visual-search" className="btn btn-outline" style={{ borderColor: 'rgba(255,255,255,0.25)', color: '#fff', padding: '0.875rem 2rem', fontSize: '1rem' }}>
+              Visual Search
+            </Link>
           </div>
         </div>
       </section>

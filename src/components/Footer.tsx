@@ -22,6 +22,7 @@ export default function Footer() {
               <li><Link to="/" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', transition: 'color 0.2s' }}>Categories</Link></li>
               <li><Link to="/products" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', transition: 'color 0.2s' }}>All Products</Link></li>
               <li><Link to="/estimator" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', transition: 'color 0.2s' }}>Tile Estimator</Link></li>
+              <li><Link to="/visual-search" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', transition: 'color 0.2s' }}>Visual Search</Link></li>
               <li><Link to="/contact" style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', transition: 'color 0.2s' }}>Contact Us</Link></li>
             </ul>
           </div>
