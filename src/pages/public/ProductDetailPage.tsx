@@ -4,6 +4,7 @@ import { loadProductById, loadCategories } from '../../lib/data';
 import { useSettings } from '../../context/SettingsContext';
 import type { Product, Category } from '../../types';
 import { ArrowLeft, Check, X } from 'lucide-react';
+import { useContrastBg } from '../../lib/imageBackground';
 
 interface OutletContextType {
   openWhatsApp: (product?: Product | null) => void;
@@ -92,49 +93,7 @@ export default function ProductDetailPage() {
       </Link>
 
       <div className="product-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
-        {/* Images */}
-        <div>
-          <div style={{
-            borderRadius: 'var(--radius)',
-            overflow: 'hidden',
-            border: '1px solid var(--border)',
-            background: 'var(--border-strong)',
-            aspectRatio: '1',
-            boxShadow: 'var(--shadow-card)',
-          }}>
-            <img
-              src={images[activeImg] || '/placeholder.png'}
-              alt={product.name}
-              style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.75rem' }}
-              onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
-            />
-          </div>
-          {images.length > 1 && (
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-              {images.map((img, i) => (
-                <img
-                  key={i}
-                  src={img}
-                  alt={`${product.name} ${i + 1}`}
-                  onClick={() => setActiveImg(i)}
-                  style={{
-                    width: '80px',
-                    height: '80px',
-                    objectFit: 'contain',
-                    padding: '0.25rem',
-                    background: 'var(--border-strong)',
-                    cursor: 'pointer',
-                    borderRadius: 'var(--radius-sm)',
-                    border: activeImg === i ? '2px solid var(--accent)' : '2px solid var(--border)',
-                    transition: 'border-color 0.2s, transform 0.2s',
-                  }}
-                  onMouseEnter={(e) => { if (activeImg !== i) e.currentTarget.style.transform = 'scale(1.05)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <DetailImage images={images} activeImg={activeImg} setActiveImg={setActiveImg} name={product.name} />
 
         {/* Details */}
         <div>
@@ -270,6 +229,67 @@ export default function ProductDetailPage() {
           .product-detail-grid { grid-template-columns: 1fr !important; gap: 1.5rem !important; }
         }
       `}</style>
+    </div>
+  );
+}
+
+function Thumbnail({ src, alt, active, onClick }: { src: string; alt: string; active: boolean; onClick: () => void }) {
+  const bg = useContrastBg(src);
+  return (
+    <img
+      src={src}
+      alt={alt}
+      onClick={onClick}
+      style={{
+        width: '80px',
+        height: '80px',
+        objectFit: 'contain',
+        padding: '0.25rem',
+        background: bg,
+        cursor: 'pointer',
+        borderRadius: 'var(--radius-sm)',
+        border: active ? '2px solid var(--accent)' : '2px solid var(--border)',
+        transition: 'border-color 0.2s, transform 0.2s',
+      }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.transform = 'scale(1.05)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+    />
+  );
+}
+
+function DetailImage({ images, activeImg, setActiveImg, name }: { images: string[]; activeImg: number; setActiveImg: (i: number) => void; name: string }) {
+  const mainSrc = images[activeImg] || '/placeholder.png';
+  const bg = useContrastBg(mainSrc);
+  return (
+    <div>
+      <div style={{
+        borderRadius: 'var(--radius)',
+        overflow: 'hidden',
+        border: '1px solid var(--border)',
+        background: bg,
+        aspectRatio: '1',
+        boxShadow: 'var(--shadow-card)',
+      }}>
+        <img
+          src={mainSrc}
+          alt={name}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.75rem' }}
+          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
+        />
+      </div>
+      {images.length > 1 && (
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+          {images.map((img, i) => (
+            <Thumbnail
+              key={i}
+              src={img}
+              alt={`${name} ${i + 1}`}
+              active={activeImg === i}
+              onClick={() => setActiveImg(i)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

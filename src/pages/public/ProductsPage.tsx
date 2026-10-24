@@ -3,6 +3,7 @@ import { Link, useSearchParams, useOutletContext } from 'react-router-dom';
 import { loadProducts, loadCategories } from '../../lib/data';
 import type { Product, Category } from '../../types';
 import { SlidersHorizontal, Search } from 'lucide-react';
+import ContrastImage from '../../components/ContrastImage';
 
 interface OutletContextType {
   openWhatsApp: (product?: Product | null) => void;
@@ -207,8 +208,15 @@ export default function ProductsPage() {
                   onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
                   >
                     <Link to={`/product/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                      <div style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1', background: 'var(--border-strong)' }}>
-                        {onSale && (
+                      <ContrastImage
+                        src={imgSrc}
+                        alt={p.name}
+                        padding="0.5rem"
+                        imgStyle={{ transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)' }}
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
+                        onHoverImg={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
+                        onLeaveImg={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                        badge={onSale ? (
                           <span style={{
                             position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 1,
                             background: 'var(--danger)', color: '#fff', fontSize: '0.7rem', fontWeight: 700,
@@ -217,16 +225,8 @@ export default function ProductsPage() {
                           }}>
                             SALE{discount ? ` -${discount}%` : ''}
                           </span>
-                        )}
-                        <img
-                          src={imgSrc}
-                          alt={p.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.5rem', transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)' }}
-                          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
-                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                        />
-                      </div>
+                        ) : null}
+                      />
                       <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
                         {p.brand && <span className="badge badge-warning mb-2" style={{ alignSelf: 'flex-start' }}>{p.brand}</span>}
                         <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>{p.name}</h3>
