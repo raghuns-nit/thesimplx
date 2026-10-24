@@ -105,7 +105,7 @@ export default function ProductDetailPage() {
             <img
               src={images[activeImg] || '/placeholder.png'}
               alt={product.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.75rem' }}
               onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
             />
           </div>
@@ -120,7 +120,9 @@ export default function ProductDetailPage() {
                   style={{
                     width: '80px',
                     height: '80px',
-                    objectFit: 'cover',
+                    objectFit: 'contain',
+                    padding: '0.25rem',
+                    background: 'var(--bg-light)',
                     cursor: 'pointer',
                     borderRadius: 'var(--radius-sm)',
                     border: activeImg === i ? '2px solid var(--accent)' : '2px solid var(--border)',

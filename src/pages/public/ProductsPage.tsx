@@ -221,7 +221,7 @@ export default function ProductsPage() {
                         <img
                           src={imgSrc}
                           alt={p.name}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)' }}
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.5rem', transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)' }}
                           onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
                           onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
                           onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
