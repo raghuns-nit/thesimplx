@@ -459,25 +459,23 @@ export default function VisualSearchPage() {
             {/* Results */}
             {hasSearched && (
               <>
+                <div style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius)', padding: '1.25rem', marginBottom: '1rem' }}>
+                  <strong>Do any of these results look like your product?</strong>
+                  <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.45rem 0 0.9rem' }}>
+                    If not, send us your image with a general enquiry through WhatsApp. JPG, PNG, or WebP images up to 5 MB are supported.
+                  </p>
+                  <button className="btn btn-whatsapp" onClick={() => openWhatsApp(null)}>
+                    Send Image Enquiry
+                  </button>
+                </div>
                 {results.length === 0 ? (
-                  <>
-                    <div style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius)', padding: '1.25rem', marginBottom: '1rem' }}>
-                      <strong>Could not find a similar product?</strong>
-                      <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.45rem 0 0.9rem' }}>
-                        Send us your image with a general enquiry through WhatsApp. JPG, PNG, or WebP images up to 5 MB are supported.
-                      </p>
-                      <button className="btn btn-whatsapp" onClick={() => openWhatsApp(null)}>
-                        Send Image Enquiry
-                      </button>
-                    </div>
-                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                       <ImageIcon size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
                       <p>No matches found in {searchedCategoryName}.</p>
                       <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
                         Try a different category or a clearer photo of the product.
                       </p>
-                    </div>
-                  </>
+                  </div>
                 ) : (
                   <>
                     <div style={{ marginBottom: '1rem' }}>
