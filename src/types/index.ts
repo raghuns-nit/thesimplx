@@ -66,6 +66,8 @@ export interface Enquiry {
   assignee: string | null;
   status: string | null;
   comment: string | null;
+  attachment_path: string | null;
+  attachment_name: string | null;
   created_at: string;
   updated_at: string | null;
 }

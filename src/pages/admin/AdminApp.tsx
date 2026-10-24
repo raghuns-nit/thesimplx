@@ -911,7 +911,28 @@ function EnquiriesTab({ enquiries, onRefresh }: { enquiries: Enquiry[]; onRefres
   const [assignee, setAssignee] = useState('');
   const [status, setStatus] = useState('New');
   const [comment, setComment] = useState('');
+  const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
   const { show, hide } = useLoader();
+
+  useEffect(() => {
+    let active = true;
+    const loadAttachmentUrls = async () => {
+      const entries = await Promise.all(
+        enquiries
+          .filter((enquiry) => enquiry.attachment_path)
+          .map(async (enquiry) => {
+            const { data, error } = await supabase.storage
+              .from('enquiry-attachments')
+              .createSignedUrl(enquiry.attachment_path!, 3600);
+            if (error || !data?.signedUrl) return null;
+            return [enquiry.id, data.signedUrl] as const;
+          }),
+      );
+      if (active) setAttachmentUrls(Object.fromEntries(entries.filter((entry): entry is readonly [string, string] => entry !== null)));
+    };
+    loadAttachmentUrls();
+    return () => { active = false; };
+  }, [enquiries]);
 
   const openModal = (e: Enquiry) => {
     setEditing(e);
@@ -959,7 +980,19 @@ function EnquiriesTab({ enquiries, onRefresh }: { enquiries: Enquiry[]; onRefres
                     <small className="text-muted">Assigned: <span style={{ color: 'var(--primary)' }}>{e.assignee || 'Unassigned'}</span></small>
                   </td>
                   <td style={{ padding: '0.75rem 1rem' }}>{e.phone}<br /><small>{e.email || '—'}</small></td>
-                  <td style={{ padding: '0.75rem 1rem', maxWidth: '240px', whiteSpace: 'pre-wrap' }}>{e.message}</td>
+                  <td style={{ padding: '0.75rem 1rem', maxWidth: '240px', whiteSpace: 'pre-wrap' }}>
+                    {e.message}
+                    {e.attachment_path && attachmentUrls[e.id] && (
+                      <a
+                        href={attachmentUrls[e.id]}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ display: 'block', marginTop: '0.5rem', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600 }}
+                      >
+                        View attached image{e.attachment_name ? `: ${e.attachment_name}` : ''}
+                      </a>
+                    )}
+                  </td>
                   <td style={{ padding: '0.75rem 1rem', maxWidth: '180px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{e.comment || ''}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     <span className={`badge ${e.status === 'Closed' ? 'badge-success' : e.status === 'Assigned' ? 'badge-warning' : 'badge-info'}`}>

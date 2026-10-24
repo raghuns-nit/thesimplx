@@ -96,6 +96,8 @@ export async function insertEnquiry(enquiry: {
   email: string | null;
   phone: string;
   message: string;
+  attachment_path?: string | null;
+  attachment_name?: string | null;
 }): Promise<boolean> {
   const { error } = await supabase.from('enquiries').insert(enquiry);
   if (error) { console.error('insertEnquiry:', error); return false; }
@@ -146,6 +148,21 @@ export async function logActivity(
 }
 
 // ── Image Upload ───────────────────────────────────────────
+
+export async function uploadEnquiryAttachment(file: File): Promise<string | null> {
+  const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+  const path = `pending/${crypto.randomUUID()}.${extension}`;
+  const { error } = await supabase.storage
+    .from('enquiry-attachments')
+    .upload(path, file, { contentType: file.type, upsert: false });
+
+  if (error) {
+    console.error('uploadEnquiryAttachment:', error);
+    return null;
+  }
+
+  return path;
+}
 
 export async function uploadImage(
   file: File,
