@@ -203,12 +203,6 @@ export default function VisualSearchPage() {
     return { color: 'var(--success)' };
   };
 
-  const matchBadgeColor = (score: number) => {
-    if (score >= 70) return { bg: 'var(--success-light)', color: 'var(--success)' };
-    if (score >= 50) return { bg: 'var(--warning-light)', color: 'var(--accent-dark)' };
-    return { bg: 'var(--bg-light)', color: 'var(--text-muted)' };
-  };
-
   const searchedCategoryName = categories.find((c) => c.id === searchedCategory)?.name || 'All Categories';
 
   return (
@@ -468,7 +462,7 @@ export default function VisualSearchPage() {
                 {results.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     <ImageIcon size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-                    <p>No matches found in {searchedCategoryName} with at least {visualThreshold}% similarity.</p>
+                    <p>No matches found in {searchedCategoryName}.</p>
                     <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
                       Try a different category or a clearer photo of the product.
                     </p>
@@ -477,8 +471,7 @@ export default function VisualSearchPage() {
                   <>
                     <div style={{ marginBottom: '1rem' }}>
                       <p className="text-muted" style={{ fontSize: '0.875rem' }}>
-                        {results.length} match{results.length === 1 ? '' : 'es'} found in {searchedCategoryName}
-                        {' '}({visualThreshold}%+ similarity)
+                        {results.length} Similar found in {searchedCategoryName}
                       </p>
                     </div>
                     <div className="grid grid-cols-3">
@@ -486,7 +479,6 @@ export default function VisualSearchPage() {
                         const p = match.product;
                         const images = p.image_urls || [];
                         const imgSrc = images.length > 0 ? images[0] : '/placeholder.png';
-                        const badge = matchBadgeColor(match.score);
 
                         return (
                           <div
@@ -506,14 +498,6 @@ export default function VisualSearchPage() {
                           >
                             <Link to={`/product/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
                               <div style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1', background: 'var(--bg-light)' }}>
-                                <span style={{
-                                  position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 1,
-                                  background: badge.bg, color: badge.color, fontSize: '0.7rem', fontWeight: 700,
-                                  padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-full)',
-                                  letterSpacing: '0.03em',
-                                }}>
-                                  {match.score}% match
-                                </span>
                                 <img
                                   src={imgSrc}
                                   alt={p.name}
