@@ -207,7 +207,7 @@ export default function ProductsPage() {
                   onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
                   >
                     <Link to={`/product/${p.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                      <div style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1', background: 'var(--bg-light)' }}>
+                      <div style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1', background: 'var(--bg-light)', backgroundImage: 'linear-gradient(45deg, #e8e2d8 25%, transparent 25%, transparent 75%, #e8e2d8 75%), linear-gradient(45deg, #e8e2d8 25%, transparent 25%, transparent 75%, #e8e2d8 75%)', backgroundSize: '20px 20px', backgroundPosition: '0 0, 10px 10px' }}>
                         {onSale && (
                           <span style={{
                             position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 1,
