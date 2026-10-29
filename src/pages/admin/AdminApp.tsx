@@ -12,6 +12,8 @@ import {
 type Tab = 'dashboard' | 'categories' | 'products' | 'inventory' | 'enquiries' | 'settings' | 'activity';
 type ProfileDraft = AboutProfile & { file: File | null };
 
+const defaultColourOptions = ['Black', 'Blue', 'Red', 'Yellow', 'Green', 'White', 'Cream'];
+
 export default function AdminApp() {
   const navigate = useNavigate();
   const { show, hide } = useLoader();
@@ -190,7 +192,7 @@ export default function AdminApp() {
         <div style={{ flex: 1, padding: '2rem 1.5rem', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
           {tab === 'dashboard' && <DashboardTab categories={categories} products={products} enquiries={enquiries} logs={logs} onNavigate={setTab} />}
           {tab === 'categories' && <CategoriesTab categories={categories} products={products} onRefresh={refreshAll} />}
-          {tab === 'products' && <ProductsTab categories={categories} products={products} onRefresh={refreshAll} />}
+          {tab === 'products' && <ProductsTab categories={categories} products={products} settings={settings} onRefresh={refreshAll} />}
           {tab === 'inventory' && <InventoryTab categories={categories} products={products} settings={settings} onRefresh={refreshAll} onOpenProducts={() => setTab('products')} />} 
           {tab === 'enquiries' && <EnquiriesTab enquiries={enquiries} onRefresh={refreshAll} />}
           {tab === 'settings' && <SettingsTab settings={settings} onRefresh={refreshAll} />}
@@ -445,7 +447,8 @@ function CategoriesTab({ categories, onRefresh }: { categories: Category[]; prod
 
 // ── Products Tab ───────────────────────────────────────────
 
-function ProductsTab({ categories, products, onRefresh }: { categories: Category[]; products: Product[]; onRefresh: () => Promise<void> }) {
+function ProductsTab({ categories, products, settings, onRefresh }: { categories: Category[]; products: Product[]; settings: Settings | null; onRefresh: () => Promise<void> }) {
+  const colourOptions = settings?.product_colour_options?.filter((value) => value.trim()) || defaultColourOptions;
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const { show, hide } = useLoader();
@@ -454,6 +457,8 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [brand, setBrand] = useState('');
+  const [search, setSearch] = useState('');
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
   const [size, setSize] = useState('');
   const [finish, setFinish] = useState('');
   const [color, setColor] = useState('');
@@ -466,6 +471,7 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
   const [liquidateStock, setLiquidateStock] = useState(false);
   const [onSale, setOnSale] = useState(false);
   const [discount, setDiscount] = useState('');
+  const [notes, setNotes] = useState('');
   const [images, setImages] = useState<FileList | null>(null);
 
   const skuPrefixes: Record<string, string> = {
@@ -480,7 +486,7 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
     setName(''); setCategoryId(''); setBrand(''); setSize(''); setFinish('');
     setColor(''); setThickness(''); setMaterial('');
     setStockStatus('In Stock'); setStockQuantity('0'); setPrice(''); setUnit('Sft');
-    setLiquidateStock(false); setOnSale(false); setDiscount(''); setImages(null);
+    setLiquidateStock(false); setOnSale(false); setDiscount(''); setNotes(''); setImages(null);
     setShowModal(true);
   };
 
@@ -496,6 +502,7 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
     setMaterial((specs?.material as string) || '');
     setOnSale(specs?.onSale === true || specs?.onSale === 'true');
     setDiscount((specs?.discount as string) || '');
+    setNotes(p.notes || '');
     setShowModal(true);
   };
 
@@ -508,6 +515,10 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
       return;
     }
     if (!unit) { alert('Please select a unit.'); return; }
+    if (images && images.length > 5) {
+      alert('Please select no more than 5 product images.');
+      return;
+    }
     show('Processing product...');
 
     try {
@@ -530,6 +541,7 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
         price: parseFloat(price) || null,
         unit,
         specifications: specs,
+        notes: notes.trim() || null,
       };
 
       const cat = categories.find((c) => c.id === categoryId);
@@ -595,71 +607,67 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
     return 'badge-success';
   };
 
+  const searchTerm = search.trim().toLowerCase();
+  const filteredProducts = products.filter((product) => !searchTerm || [product.name, product.brand, product.size, product.sku]
+    .some((value) => value?.toLowerCase().includes(searchTerm)));
+  const productGroups = [
+    ...categories.map((category) => ({ id: category.id, name: category.name, products: filteredProducts.filter((product) => product.category_id === category.id) })).filter((group) => group.products.length > 0),
+    { id: 'uncategorized', name: 'Uncategorized', products: filteredProducts.filter((product) => !categories.some((category) => category.id === product.category_id)) },
+  ].filter((group) => group.products.length > 0);
+
+  const renderProductRow = (p: Product) => {
+    const imgs = p.image_urls || [];
+    const cat = categories.find((c) => c.id === p.category_id);
+    const specs = p.specifications as Record<string, unknown> | null;
+    const isOnSale = specs?.onSale === true || specs?.onSale === 'true';
+    const disc = (specs?.discount as string) || '';
+    return (
+      <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
+        <td style={{ padding: '0.75rem 1rem' }}><strong style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku || '—'}</strong></td>
+        <td style={{ padding: '0.75rem 1rem' }}><img src={imgs[0] || '/placeholder.png'} alt={p.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }} /></td>
+        <td style={{ padding: '0.75rem 1rem' }}>{p.name}{p.brand && <><br /><small className="text-muted">{p.brand}</small></>}</td>
+        <td style={{ padding: '0.75rem 1rem' }}>{cat ? cat.name : '—'}</td>
+        <td style={{ padding: '0.75rem 1rem' }}>₹{p.price || 0} <small className="text-muted">/ {p.unit || 'unit'}</small></td>
+        <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>{Number(p.stock_quantity ?? 0).toFixed(2)} <small className="text-muted">{p.unit || 'Sft'}</small></td>
+        <td style={{ padding: '0.75rem 1rem' }}><span className={`badge ${getStockBadge(p.stock_status)}`}>{p.stock_status || 'In Stock'}</span></td>
+        <td style={{ padding: '0.75rem 1rem' }}>{isOnSale ? <span className="badge badge-danger" style={{ background: 'var(--danger)', color: '#fff' }}>ON SALE{disc ? ` -${disc}%` : ''}</span> : <span className="text-muted">—</span>}</td>
+        <td style={{ padding: '0.75rem 1rem' }}>{p.liquidate_stock ? <span className="badge badge-warning">Liquidate</span> : <span className="text-muted">—</span>}</td>
+        <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}><button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', marginRight: '0.5rem' }} onClick={() => openEdit(p)}><Pencil size={14} /></button><button className="btn btn-danger" style={{ padding: '0.25rem 0.5rem' }} onClick={() => handleDelete(p.id, p.name)}><Trash2 size={14} /></button></td>
+      </tr>
+    );
+  };
+
   return (
     <div className="fade-in">
-      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <p className="text-muted">{products.length} products</p>
-        <button className="btn btn-primary" onClick={openAdd}><Plus size={18} /> Add Product</button>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        <p className="text-muted" style={{ margin: 0 }}>{filteredProducts.length} of {products.length} products</p>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products..." style={{ minWidth: '220px' }} />
+          <button className="btn btn-primary" onClick={openAdd}><Plus size={18} /> Add Product</button>
+        </div>
       </div>
 
-      <div style={{ overflowX: 'auto', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-light)' }}>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>SKU</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Image</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Name</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Category</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Price</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Stock Qty</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Status</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>On Sale</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Liquidate Stock</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.length === 0 ? (
-              <tr><td colSpan={10} className="text-center text-muted" style={{ padding: '2rem' }}>No products yet.</td></tr>
-            ) : products.map((p) => {
-              const imgs = p.image_urls || [];
-              const cat = categories.find((c) => c.id === p.category_id);
-              const specs = p.specifications as Record<string, unknown> | null;
-              const isOnSale = specs?.onSale === true || specs?.onSale === 'true';
-              const disc = (specs?.discount as string) || '';
-              return (
-                <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '0.75rem 1rem' }}><strong style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku || '—'}</strong></td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <img src={imgs[0] || '/placeholder.png'} alt={p.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }} />
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    {p.name}
-                    {p.brand && <><br /><small className="text-muted">{p.brand}</small></>}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{cat ? cat.name : '—'}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>₹{p.price || 0} <small className="text-muted">/ {p.unit || 'unit'}</small></td>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>{Number(p.stock_quantity ?? 0).toFixed(2)} <small className="text-muted">{p.unit || 'Sft'}</small></td>
-                  <td style={{ padding: '0.75rem 1rem' }}><span className={`badge ${getStockBadge(p.stock_status)}`}>{p.stock_status || 'In Stock'}</span></td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    {isOnSale
-                      ? <span className="badge badge-danger" style={{ background: 'var(--danger)', color: '#fff' }}>ON SALE{disc ? ` -${disc}%` : ''}</span>
-                      : <span className="text-muted">—</span>}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    {p.liquidate_stock ? <span className="badge badge-warning">Liquidate</span> : <span className="text-muted">—</span>}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                    <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', marginRight: '0.5rem' }} onClick={() => openEdit(p)}><Pencil size={14} /></button>
-                    <button className="btn btn-danger" style={{ padding: '0.25rem 0.5rem' }} onClick={() => handleDelete(p.id, p.name)}><Trash2 size={14} /></button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {productGroups.length === 0 ? (
+        <div className="text-center text-muted" style={{ padding: '3rem', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+          {products.length === 0 ? 'No products yet.' : 'No products match your search.'}
+        </div>
+      ) : productGroups.map((group) => {
+        const collapsed = collapsedCategories[group.id] === true;
+        return (
+          <section key={group.id} style={{ marginBottom: '1rem', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+            <button type="button" onClick={() => setCollapsedCategories((current) => ({ ...current, [group.id]: !collapsed }))} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', background: 'var(--bg-light)', border: 0, borderBottom: collapsed ? 0 : '1px solid var(--border)', cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }}>
+              <strong>{group.name} <span className="text-muted" style={{ fontWeight: 500 }}>({group.products.length})</span></strong>
+              <span className="text-muted">{collapsed ? 'Expand' : 'Collapse'}</span>
+            </button>
+            {!collapsed && <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                <thead><tr style={{ borderBottom: '2px solid var(--border)' }}>{['SKU', 'Image', 'Name', 'Category', 'Price', 'Stock Qty', 'Status', 'On Sale', 'Liquidate Stock', 'Actions'].map((heading) => <th key={heading} style={{ padding: '0.75rem 1rem', textAlign: heading === 'Actions' ? 'right' : 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{heading}</th>)}</tr></thead>
+                <tbody>{group.products.map(renderProductRow)}</tbody>
+              </table>
+            </div>}
+          </section>
+        );
+      })}
 
       {showModal && (
         <div className="modal-overlay active" onClick={() => setShowModal(false)}>
@@ -722,8 +730,13 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Color</label>
-                    <input type="text" value={color} onChange={(e) => setColor(e.target.value)} />
+                    <label>Colour</label>
+                    <select value={color && colourOptions.includes(color) ? color : color ? '__custom__' : ''} onChange={(e) => setColor(e.target.value === '__custom__' ? '' : e.target.value)}>
+                      <option value="">Select Colour</option>
+                      {colourOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                      <option value="__custom__">Other / type custom</option>
+                    </select>
+                    {(!color || !colourOptions.includes(color)) && <input type="text" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Type a custom colour" style={{ marginTop: '0.5rem' }} />}
                   </div>
                   <div className="form-group">
                     <label>Thickness</label>
@@ -746,8 +759,13 @@ function ProductsTab({ categories, products, onRefresh }: { categories: Category
                     <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} min="0" max="100" placeholder="e.g., 15" />
                   </div>
                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label>Product Images (up to 3) {editing ? '(optional)' : '(required)'}</label>
+                    <label>Notes</label>
+                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional product notes for customers" />
+                  </div>
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label>Product Images (up to 5) {editing ? '(optional)' : '(required)'}</label>
                     <input type="file" accept="image/*" multiple onChange={(e) => setImages(e.target.files)} />
+                    <small className="text-muted">Select no more than 5 images.</small>
                   </div>
                 </div>
               </div>
@@ -911,6 +929,9 @@ function EnquiriesTab({ enquiries, onRefresh }: { enquiries: Enquiry[]; onRefres
   const [assignee, setAssignee] = useState('');
   const [status, setStatus] = useState('New');
   const [comment, setComment] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
   const { show, hide } = useLoader();
 
@@ -942,6 +963,13 @@ function EnquiriesTab({ enquiries, onRefresh }: { enquiries: Enquiry[]; onRefres
     setShowModal(true);
   };
 
+  const filteredEnquiries = enquiries.filter((enquiry) => {
+    const createdDate = enquiry.created_at.slice(0, 10);
+    return (!filterStatus || (enquiry.status || 'New') === filterStatus)
+      && (!filterDateFrom || createdDate >= filterDateFrom)
+      && (!filterDateTo || createdDate <= filterDateTo);
+  });
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing) return;
@@ -955,8 +983,14 @@ function EnquiriesTab({ enquiries, onRefresh }: { enquiries: Enquiry[]; onRefres
 
   return (
     <div className="fade-in">
-      {enquiries.length === 0 ? (
-        <div className="text-center text-muted" style={{ padding: '3rem' }}>No enquiries yet.</div>
+      <div style={{ display: 'flex', alignItems: 'end', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', padding: '1rem', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+        <div className="form-group" style={{ margin: 0 }}><label>Status</label><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}><option value="">All statuses</option><option value="New">New</option><option value="Assigned">Assigned</option><option value="Closed">Closed</option></select></div>
+        <div className="form-group" style={{ margin: 0 }}><label>From date</label><input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} /></div>
+        <div className="form-group" style={{ margin: 0 }}><label>To date</label><input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} /></div>
+        <button type="button" className="btn btn-outline" onClick={() => { setFilterStatus(''); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear Filters</button>
+      </div>
+      {filteredEnquiries.length === 0 ? (
+        <div className="text-center text-muted" style={{ padding: '3rem' }}>{enquiries.length === 0 ? 'No enquiries yet.' : 'No enquiries match these filters.'}</div>
       ) : (
         <div style={{ overflowX: 'auto', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
@@ -972,7 +1006,7 @@ function EnquiriesTab({ enquiries, onRefresh }: { enquiries: Enquiry[]; onRefres
               </tr>
             </thead>
             <tbody>
-              {enquiries.map((e) => (
+              {filteredEnquiries.map((e) => (
                 <tr key={e.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '0.75rem 1rem' }}><small>{new Date(e.created_at).toLocaleString()}</small></td>
                   <td style={{ padding: '0.75rem 1rem' }}>
@@ -1063,6 +1097,8 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
   });
   const [heroDescription, setHeroDescription] = useState('');
   const [aboutHistory, setAboutHistory] = useState('');
+  const [colourOptions, setColourOptions] = useState<string[]>(defaultColourOptions);
+  const [newColour, setNewColour] = useState('');
   const [profiles, setProfiles] = useState<ProfileDraft[]>([]);
   const { show, hide } = useLoader();
 
@@ -1087,6 +1123,7 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
       });
       setHeroDescription(settings.hero_description || '');
       setAboutHistory(settings.about_history || '');
+      setColourOptions(settings.product_colour_options?.filter((value) => value.trim()) || defaultColourOptions);
       setProfiles((settings.about_profiles || []).slice(0, 4).map((profile) => ({
         name: profile.name || '',
         role: profile.role || '',
@@ -1132,6 +1169,7 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
       hero_description: heroDescription.trim(),
       about_history: aboutHistory.trim(),
       about_profiles: savedProfiles,
+      product_colour_options: colourOptions.map((value) => value.trim()).filter(Boolean),
       visual_search_threshold: Number(visualForm.threshold.toFixed(2)),
       visual_search_max_results: Math.round(visualForm.maxResults),
       visual_search_color_weight: Number(visualForm.colorWeight.toFixed(2)),
@@ -1178,6 +1216,23 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
             />
           </div>
         ))}
+        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+          <h3 style={{ marginBottom: '0.35rem' }}>Product Colour Options</h3>
+          <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Manage the colour choices shown in the product editor. Removing an option does not change products that already use it.</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+            {colourOptions.map((option) => (
+              <span key={option} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: 'var(--bg-light)', border: '1px solid var(--border)', borderRadius: 'var(--radius-full)', padding: '0.35rem 0.6rem', fontSize: '0.85rem' }}>
+                {option}
+                <button type="button" onClick={() => { const value = window.prompt('Edit colour', option)?.trim(); if (value && !colourOptions.some((current) => current !== option && current.toLowerCase() === value.toLowerCase())) setColourOptions(colourOptions.map((current) => current === option ? value : current)); }} aria-label={`Edit ${option}`} style={{ border: 0, background: 'transparent', color: 'var(--primary)', cursor: 'pointer', padding: '0.1rem' }}><Pencil size={13} /></button>
+                <button type="button" onClick={() => setColourOptions(colourOptions.filter((value) => value !== option))} aria-label={`Remove ${option}`} style={{ border: 0, background: 'transparent', color: 'var(--danger)', cursor: 'pointer', padding: '0.1rem' }}><X size={13} /></button>
+              </span>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input type="text" value={newColour} onChange={(e) => setNewColour(e.target.value)} placeholder="Add a colour" />
+            <button type="button" className="btn btn-outline" onClick={() => { const value = newColour.trim(); if (value && !colourOptions.some((option) => option.toLowerCase() === value.toLowerCase())) { setColourOptions([...colourOptions, value]); setNewColour(''); } }}>Add Colour</button>
+          </div>
+        </div>
         <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
           <h3 style={{ marginBottom: '0.35rem' }}>Visual Search Settings</h3>
           <p className="text-muted" style={{ fontSize: '0.8rem', marginBottom: '1rem' }}>Adjust matching behavior without changing the app code. Weight values are relative percentages and are normalized automatically.</p>

@@ -23,6 +23,7 @@ export interface Product {
   stock_status: string | null;
   image_urls: string[] | null;
   specifications: Record<string, unknown> | null;
+  notes: string | null;
   sort_order: number;
   created_at: string;
   visual_signature: number[] | null;
@@ -54,6 +55,7 @@ export interface Settings {
   hero_description: string | null;
   about_history: string | null;
   about_profiles: AboutProfile[] | null;
+  product_colour_options: string[] | null;
   updated_at: string | null;
 }
 

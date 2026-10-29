@@ -153,6 +153,13 @@ export default function ProductDetailPage() {
             )}
           </div>
 
+          {product.notes?.trim() && (
+            <div style={{ marginTop: '1.5rem', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '1.5rem', boxShadow: 'var(--shadow-card)' }}>
+              <h3 style={{ marginBottom: '0.75rem' }}>Notes</h3>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{product.notes.trim()}</p>
+            </div>
+          )}
+
           {/* UPI QR */}
           {upiId && (
             <div style={{
