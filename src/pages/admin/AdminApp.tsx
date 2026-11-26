@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useLoader } from '../../context/LoaderContext';
-import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSettings, saveSettings, insertEnquiry, updateEnquiry, logActivity, uploadImage } from '../../lib/data';
+import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSettings, saveSettings, insertEnquiry, updateEnquiry, logActivity, uploadImage, deleteStorageImage } from '../../lib/data';
 import type { Category, Product, Enquiry, ActivityLog, Settings, AboutProfile } from '../../types';
 import {
   LayoutDashboard, FolderTree, Package, Mail, Settings as SettingsIcon, History,
@@ -302,6 +302,7 @@ function CategoriesTab({ categories, onRefresh }: { categories: Category[]; prod
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [image, setImage] = useState<File | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const { show, hide } = useLoader();
 
   const openAdd = () => {
@@ -309,6 +310,7 @@ function CategoriesTab({ categories, onRefresh }: { categories: Category[]; prod
     setName('');
     setDesc('');
     setImage(null);
+    setRemoveImage(false);
     setShowModal(true);
   };
 
@@ -317,6 +319,7 @@ function CategoriesTab({ categories, onRefresh }: { categories: Category[]; prod
     setName(c.name);
     setDesc(c.description || '');
     setImage(null);
+    setRemoveImage(false);
     setShowModal(true);
   };
 
@@ -334,6 +337,9 @@ function CategoriesTab({ categories, onRefresh }: { categories: Category[]; prod
         if (image) {
           const url = await uploadImage(image, 'categories', `${slug}.jpg`);
           if (url) updates.image_url = url;
+        } else if (removeImage && editing.image_url) {
+          await deleteStorageImage(editing.image_url);
+          updates.image_url = null;
         }
         const { error } = await supabase.from('categories').update(updates).eq('id', editing.id);
         if (error) throw error;
@@ -431,6 +437,15 @@ function CategoriesTab({ categories, onRefresh }: { categories: Category[]; prod
                 <div className="form-group">
                   <label>Image {editing ? '(optional — leave empty to keep existing)' : '*'}</label>
                   <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] || null)} />
+                  {editing && editing.image_url && !image && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <img src={editing.image_url} alt="Category" style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }} />
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--danger)', cursor: 'pointer', margin: 0 }}>
+                        <input type="checkbox" checked={removeImage} onChange={(e) => setRemoveImage(e.target.checked)} style={{ width: '16px', height: '16px' }} />
+                        Remove current image
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">
@@ -473,6 +488,7 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
   const [discount, setDiscount] = useState('');
   const [notes, setNotes] = useState('');
   const [images, setImages] = useState<FileList | null>(null);
+  const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
 
   const skuPrefixes: Record<string, string> = {
     floor_tiles: 'FT', wall_tiles: 'WT', vitrified_tiles: 'VF',
@@ -487,6 +503,7 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
     setColor(''); setThickness(''); setMaterial('');
     setStockStatus('In Stock'); setStockQuantity('0'); setPrice(''); setUnit('Sft');
     setLiquidateStock(false); setOnSale(false); setDiscount(''); setNotes(''); setImages(null);
+    setRemovedImageUrls([]);
     setShowModal(true);
   };
 
@@ -496,6 +513,7 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
     setSize(p.size || ''); setFinish(p.finish || '');
     setStockStatus(p.stock_status || 'In Stock'); setStockQuantity(String(p.stock_quantity ?? 0)); setPrice(String(p.price || '')); setUnit(p.unit || 'Sft');
     setLiquidateStock(Boolean(p.liquidate_stock)); setImages(null);
+    setRemovedImageUrls([]);
     const specs = p.specifications as Record<string, unknown> | null;
     setColor((specs?.color as string) || '');
     setThickness((specs?.thickness as string) || '');
@@ -504,6 +522,10 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
     setDiscount((specs?.discount as string) || '');
     setNotes(p.notes || '');
     setShowModal(true);
+  };
+
+  const toggleRemoveImage = (url: string) => {
+    setRemovedImageUrls((prev) => prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url]);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -548,15 +570,20 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
       const folder = cat ? cat.slug : 'misc';
 
       if (editing) {
-        let imageUrls = editing.image_urls || [];
+        let imageUrls = (editing.image_urls || []).filter((url) => !removedImageUrls.includes(url));
         if (images && images.length > 0) {
-          imageUrls = [];
           for (let i = 0; i < images.length; i++) {
             const ext = images[i].name.split('.').pop();
             const filename = `${editing.sku || 'img'}_0${i + 1}.${ext}`;
             const url = await uploadImage(images[i], `products/${folder}`, filename);
             if (url) imageUrls.push(url);
           }
+        }
+        for (const removedUrl of removedImageUrls) {
+          await deleteStorageImage(removedUrl);
+        }
+        if (imageUrls.length === 0 && (!images || images.length === 0)) {
+          hide(); alert('A product needs at least one image. Please add an image or un-remove an existing one.'); return;
         }
         const { error } = await supabase.from('products').update({ ...fields, image_urls: imageUrls }).eq('id', editing.id);
         if (error) throw error;
@@ -764,8 +791,23 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
                   </div>
                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
                     <label>Product Images (up to 5) {editing ? '(optional)' : '(required)'}</label>
+                    {editing && editing.image_urls && editing.image_urls.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.5rem', marginBottom: '0.75rem' }}>
+                        {editing.image_urls.map((url, idx) => {
+                          const isRemoved = removedImageUrls.includes(url);
+                          return (
+                            <div key={idx} style={{ position: 'relative', width: '72px', height: '72px' }}>
+                              <img src={url} alt={`Product ${idx + 1}`} style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', opacity: isRemoved ? 0.35 : 1, filter: isRemoved ? 'grayscale(1)' : 'none' }} onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }} />
+                              <button type="button" onClick={() => setRemovedImageUrls((prev) => isRemoved ? prev.filter((u) => u !== url) : [...prev, url]))} aria-label={isRemoved ? 'Restore image' : 'Remove image'} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', border: '1px solid var(--border)', background: isRemoved ? 'var(--success)' : 'var(--danger)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, lineHeight: 1 }}>
+                                {isRemoved ? '+' : '×'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     <input type="file" accept="image/*" multiple onChange={(e) => setImages(e.target.files)} />
-                    <small className="text-muted">Select no more than 5 images.</small>
+                    <small className="text-muted">{editing && editing.image_urls && editing.image_urls.length > 0 ? 'Click × on a thumbnail to remove it (click + to undo). New files will be added to the kept images.' : 'Select no more than 5 images.'}</small>
                   </div>
                 </div>
               </div>

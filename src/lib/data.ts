@@ -170,9 +170,10 @@ export async function uploadImage(
   filename: string,
 ): Promise<string | null> {
   const path = `${folder}/${filename}`;
+  const contentType = file.type || 'image/jpeg';
   const { error } = await supabase.storage
     .from('product-images')
-    .upload(path, file, { upsert: true });
+    .upload(path, file, { upsert: true, contentType });
 
   if (error) {
     console.error('uploadImage:', error);
@@ -184,4 +185,27 @@ export async function uploadImage(
     .getPublicUrl(path);
 
   return urlData.publicUrl;
+}
+
+function storagePathFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const marker = '/product-images/';
+    const idx = u.pathname.indexOf(marker);
+    if (idx === -1) return null;
+    return decodeURIComponent(u.pathname.slice(idx + marker.length));
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteStorageImage(url: string): Promise<boolean> {
+  const path = storagePathFromUrl(url);
+  if (!path) return false;
+  const { error } = await supabase.storage.from('product-images').remove([path]);
+  if (error) {
+    console.error('deleteStorageImage:', error);
+    return false;
+  }
+  return true;
 }
