@@ -164,6 +164,17 @@ export async function uploadEnquiryAttachment(file: File): Promise<string | null
   return path;
 }
 
+export async function createEnquiryAttachmentSignedUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from('enquiry-attachments')
+    .createSignedUrl(path, 86400);
+  if (error || !data?.signedUrl) {
+    console.error('createEnquiryAttachmentSignedUrl:', error);
+    return null;
+  }
+  return data.signedUrl;
+}
+
 export async function uploadImage(
   file: File,
   folder: string,

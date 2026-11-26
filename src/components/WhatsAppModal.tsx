@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useLoader } from '../context/LoaderContext';
-import { insertEnquiry, uploadEnquiryAttachment } from '../lib/data';
+import { insertEnquiry, uploadEnquiryAttachment, createEnquiryAttachmentSignedUrl } from '../lib/data';
 import type { Product } from '../types';
 
 interface WhatsAppModalProps {
@@ -55,6 +55,8 @@ export default function WhatsAppModal({ isOpen, onClose, product }: WhatsAppModa
     try {
       const attachmentPath = attachment ? await uploadEnquiryAttachment(attachment) : null;
       if (attachment && !attachmentPath) throw new Error('Attachment upload failed');
+      const attachmentUrl = attachmentPath ? await createEnquiryAttachmentSignedUrl(attachmentPath) : null;
+      if (attachmentPath && !attachmentUrl) throw new Error('Attachment link generation failed');
       const message = product
         ? `WhatsApp Quote Request for: ${product.name} (SKU: ${product.sku || '—'})`
         : 'General WhatsApp Enquiry from the website';
@@ -72,9 +74,10 @@ export default function WhatsAppModal({ isOpen, onClose, product }: WhatsAppModa
       let waNumber = '919876543210';
       if (settings?.whatsapp) waNumber = settings.whatsapp.replace(/\D/g, '');
 
+      const attachmentLine = attachmentUrl ? `\nReference image: ${attachmentUrl}` : '';
       const chatText = product
-        ? `Hi, my name is ${name}. I would like a quote for ${product.name} (SKU: ${product.sku || '—'}).${attachment ? ' I have included an image with this enquiry.' : ''}`
-        : `Hi, my name is ${name}. I have a general enquiry about your products.${attachment ? ' I have included an image with this enquiry.' : ''}`;
+        ? `Hi, my name is ${name}. I would like a quote for ${product.name} (SKU: ${product.sku || '—'}).${attachmentLine}`
+        : `Hi, my name is ${name}. I have a general enquiry about your products.${attachmentLine}`;
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const waUrl = isMobile
