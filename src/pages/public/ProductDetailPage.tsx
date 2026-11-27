@@ -3,8 +3,9 @@ import { useParams, Link, useOutletContext } from 'react-router-dom';
 import { loadProductById, loadCategories } from '../../lib/data';
 import { useSettings } from '../../context/SettingsContext';
 import type { Product, Category } from '../../types';
-import { ArrowLeft, Check, X, FileText } from 'lucide-react';
+import { ArrowLeft, Check, X, ExternalLink } from 'lucide-react';
 import { useContrastBg } from '../../lib/imageBackground';
+import CatalogThumbnail from '../../components/CatalogThumbnail';
 
 interface OutletContextType {
   openWhatsApp: (product?: Product | null) => void;
@@ -49,7 +50,8 @@ export default function ProductDetailPage() {
   const onSale = specs?.onSale === true || specs?.onSale === 'true';
   const discount = (specs?.discount as string) || '';
 
-  const specEntries = [
+  const specEntries: Array<{ label: string; value: string | null; catalog?: boolean }> = [
+    { label: 'Catalog', value: product.catalog_url || null, catalog: true },
     { label: 'Size', value: product.size },
     { label: 'Finish', value: product.finish },
     { label: 'Status', value: product.stock_status },
@@ -137,17 +139,45 @@ export default function ProductDetailPage() {
             boxShadow: 'var(--shadow-card)',
           }}>
             <h3 style={{ marginBottom: '1rem' }}>Specifications</h3>
-            {specEntries.filter((s) => s.value).map((s, i) => (
-              <div key={i} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '0.6rem 0',
-                borderBottom: i < specEntries.filter((s) => s.value).length - 1 ? '1px solid var(--border)' : 'none',
-              }}>
-                <span className="text-muted" style={{ fontSize: '0.875rem' }}>{s.label}</span>
-                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.value}</span>
-              </div>
-            ))}
+            {specEntries.map((s, i) => {
+              if (s.catalog) {
+                if (!s.value) return null;
+                return (
+                  <div key={i} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    padding: '0.6rem 0',
+                    borderBottom: i < specEntries.filter((entry) => entry.value).length - 1 ? '1px solid var(--border)' : 'none',
+                  }}>
+                    <span className="text-muted" style={{ fontSize: '0.875rem' }}>{s.label}</span>
+                    <a
+                      href={s.value}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent)', fontWeight: 600, fontSize: '0.875rem', textDecoration: 'none' }}
+                    >
+                      <CatalogThumbnail url={s.value} width={40} />
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        Open Catalog <ExternalLink size={13} />
+                      </span>
+                    </a>
+                  </div>
+                );
+              }
+              return (
+                <div key={i} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: '0.6rem 0',
+                  borderBottom: i < specEntries.filter((entry) => entry.value).length - 1 ? '1px solid var(--border)' : 'none',
+                }}>
+                  <span className="text-muted" style={{ fontSize: '0.875rem' }}>{s.label}</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.value}</span>
+                </div>
+              );
+            })}
             {specEntries.filter((s) => s.value).length === 0 && (
               <p className="text-muted" style={{ fontSize: '0.875rem' }}>No specifications available.</p>
             )}
@@ -158,18 +188,6 @@ export default function ProductDetailPage() {
               <h3 style={{ marginBottom: '0.75rem' }}>Notes</h3>
               <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{product.notes.trim()}</p>
             </div>
-          )}
-
-          {product.catalog_url && (
-            <a
-              href={product.catalog_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-outline"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}
-            >
-              <FileText size={18} /> Open Catalog
-            </a>
           )}
 
           {/* UPI QR */}
