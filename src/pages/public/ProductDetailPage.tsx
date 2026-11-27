@@ -3,7 +3,7 @@ import { useParams, Link, useOutletContext } from 'react-router-dom';
 import { loadProductById, loadCategories } from '../../lib/data';
 import { useSettings } from '../../context/SettingsContext';
 import type { Product, Category } from '../../types';
-import { ArrowLeft, Check, X } from 'lucide-react';
+import { ArrowLeft, Check, X, FileText } from 'lucide-react';
 import { useContrastBg } from '../../lib/imageBackground';
 
 interface OutletContextType {
@@ -158,6 +158,18 @@ export default function ProductDetailPage() {
               <h3 style={{ marginBottom: '0.75rem' }}>Notes</h3>
               <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{product.notes.trim()}</p>
             </div>
+          )}
+
+          {product.catalog_url && (
+            <a
+              href={product.catalog_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-outline"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem' }}
+            >
+              <FileText size={18} /> Open Catalog
+            </a>
           )}
 
           {/* UPI QR */}

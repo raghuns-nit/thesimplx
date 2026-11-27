@@ -198,6 +198,29 @@ export async function uploadImage(
   return urlData.publicUrl;
 }
 
+export async function uploadCatalogPdf(
+  file: File,
+  folder: string,
+  filename: string,
+): Promise<string | null> {
+  const path = `${folder}/${filename}`;
+  const contentType = file.type || 'application/pdf';
+  const { error } = await supabase.storage
+    .from('product-images')
+    .upload(path, file, { upsert: true, contentType });
+
+  if (error) {
+    console.error('uploadCatalogPdf:', error);
+    return null;
+  }
+
+  const { data: urlData } = supabase.storage
+    .from('product-images')
+    .getPublicUrl(path);
+
+  return urlData.publicUrl;
+}
+
 function storagePathFromUrl(url: string): string | null {
   try {
     const u = new URL(url);

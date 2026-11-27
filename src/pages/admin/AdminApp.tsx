@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useLoader } from '../../context/LoaderContext';
-import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSettings, saveSettings, insertEnquiry, updateEnquiry, logActivity, uploadImage, deleteStorageImage } from '../../lib/data';
+import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSettings, saveSettings, insertEnquiry, updateEnquiry, logActivity, uploadImage, uploadCatalogPdf, deleteStorageImage } from '../../lib/data';
 import type { Category, Product, Enquiry, ActivityLog, Settings, AboutProfile } from '../../types';
 import {
   LayoutDashboard, FolderTree, Package, Mail, Settings as SettingsIcon, History,
@@ -490,6 +490,8 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
   const [notes, setNotes] = useState('');
   const [images, setImages] = useState<FileList | null>(null);
   const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([]);
+  const [catalogFile, setCatalogFile] = useState<File | null>(null);
+  const [removeCatalog, setRemoveCatalog] = useState(false);
 
   const skuPrefixes: Record<string, string> = {
     floor_tiles: 'FT', wall_tiles: 'WT', vitrified_tiles: 'VF',
@@ -505,6 +507,8 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
     setStockStatus('In Stock'); setStockQuantity('0'); setPrice(''); setUnit('Sft');
     setLiquidateStock(false); setOnSale(false); setDiscount(''); setNotes(''); setImages(null);
     setRemovedImageUrls([]);
+    setCatalogFile(null);
+    setRemoveCatalog(false);
     setShowModal(true);
   };
 
@@ -515,6 +519,8 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
     setStockStatus(p.stock_status || 'In Stock'); setStockQuantity(String(p.stock_quantity ?? 0)); setPrice(String(p.price || '')); setUnit(p.unit || 'Sft');
     setLiquidateStock(Boolean(p.liquidate_stock)); setImages(null);
     setRemovedImageUrls([]);
+    setCatalogFile(null);
+    setRemoveCatalog(false);
     const specs = p.specifications as Record<string, unknown> | null;
     setColor((specs?.color as string) || '');
     setThickness((specs?.thickness as string) || '');
@@ -570,6 +576,20 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
       const cat = categories.find((c) => c.id === categoryId);
       const folder = cat ? cat.slug : 'misc';
 
+      // PDF catalog upload (shared by insert + update)
+      let catalogUrl: string | null = null;
+      if (catalogFile) {
+        if (catalogFile.type !== 'application/pdf') {
+          hide(); alert('Catalog must be a PDF file.'); return;
+        }
+        const baseName = (editing?.sku || 'catalog').replace(/[^a-zA-Z0-9_-]/g, '');
+        const pdfName = `${baseName}_catalog.pdf`;
+        const url = await uploadCatalogPdf(catalogFile, `products/${folder}`, pdfName);
+        if (url) catalogUrl = url;
+      } else if (editing && removeCatalog && editing.catalog_url) {
+        await deleteStorageImage(editing.catalog_url);
+      }
+
       if (editing) {
         let imageUrls = (editing.image_urls || []).filter((url) => !removedImageUrls.includes(url));
         if (images && images.length > 0) {
@@ -586,7 +606,10 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
         if (imageUrls.length === 0 && (!images || images.length === 0)) {
           hide(); alert('A product needs at least one image. Please add an image or un-remove an existing one.'); return;
         }
-        const { error } = await supabase.from('products').update({ ...fields, image_urls: imageUrls }).eq('id', editing.id);
+        const updateFields: Record<string, unknown> = { ...fields, image_urls: imageUrls };
+        if (catalogFile) updateFields.catalog_url = catalogUrl;
+        else if (removeCatalog) updateFields.catalog_url = null;
+        const { error } = await supabase.from('products').update(updateFields).eq('id', editing.id);
         if (error) throw error;
         await logActivity('UPDATE_PRODUCT', 'product', editing.id);
       } else {
@@ -605,7 +628,9 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
           if (url) imageUrls.push(url);
         }
 
-        const { data: newProduct, error } = await supabase.from('products').insert({ ...fields, sku, image_urls: imageUrls }).select().single();
+        const insertFields: Record<string, unknown> = { ...fields, sku, image_urls: imageUrls };
+        if (catalogUrl) insertFields.catalog_url = catalogUrl;
+        const { data: newProduct, error } = await supabase.from('products').insert(insertFields).select().single();
         if (error) throw error;
         await logActivity('CREATE_PRODUCT', 'product', newProduct.id);
       }
@@ -809,6 +834,27 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
                     )}
                     <input type="file" accept="image/*" multiple onChange={(e) => setImages(e.target.files)} />
                     <small className="text-muted">{editing && editing.image_urls && editing.image_urls.length > 0 ? 'Click × on a thumbnail to remove it (click + to undo). New files will be added to the kept images.' : 'Select no more than 5 images.'}</small>
+                  </div>
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label>Catalog (PDF) — optional</label>
+                    {editing && editing.catalog_url && !removeCatalog && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--bg-light)', borderRadius: 'var(--radius-sm)' }}>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Current catalog attached</span>
+                        <a href={editing.catalog_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.875rem', color: 'var(--accent)' }}>View</a>
+                        <button type="button" onClick={() => setRemoveCatalog(true)} style={{ marginLeft: 'auto', background: 'var(--danger)', color: '#fff', border: 0, borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem' }}>Remove</button>
+                      </div>
+                    )}
+                    {editing && removeCatalog && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--warning-light)', borderRadius: 'var(--radius-sm)' }}>
+                        <span style={{ fontSize: '0.875rem' }}>Catalog will be removed on save.</span>
+                        <button type="button" onClick={() => setRemoveCatalog(false)} style={{ marginLeft: 'auto', background: 'var(--success)', color: '#fff', border: 0, borderRadius: 'var(--radius-sm)', padding: '0.25rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem' }}>Undo</button>
+                      </div>
+                    )}
+                    {(!editing || !editing.catalog_url || removeCatalog) && (
+                      <input type="file" accept="application/pdf" onChange={(e) => setCatalogFile(e.target.files?.[0] ?? null)} />
+                    )}
+                    {catalogFile && <small className="text-muted">Selected: {catalogFile.name}</small>}
+                    <small className="text-muted">Upload a PDF brochure or spec sheet. Customers get an "Open Catalog" button on the product page.</small>
                   </div>
                 </div>
               </div>

@@ -24,6 +24,7 @@ export interface Product {
   image_urls: string[] | null;
   specifications: Record<string, unknown> | null;
   notes: string | null;
+  catalog_url: string | null;
   sort_order: number;
   created_at: string;
   visual_signature: number[] | null;
