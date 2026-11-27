@@ -389,7 +389,7 @@ textarea { resize: vertical; min-height: 100px; }
 @media (max-width: 640px) {
   .header-inner { gap: 0.5rem; flex-wrap: wrap; }
   .header-inner .logo-container { flex-shrink: 0; }
-  .header-inner .logo-container img { width: 132px !important; }
+  .header-inner .logo-container img { max-width: 132px !important; width: auto !important; height: auto !important; }
   .header-nav {
     order: 2;
     flex: 0 0 100%;

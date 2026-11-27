@@ -14,9 +14,9 @@ export default function Logo({ width = 176, alt = 'Simplx World', variant = 'def
 
   const baseStyle: React.CSSProperties = {
     maxWidth: `${width}px`,
+    maxHeight: '100%',
     width: 'auto',
     height: 'auto',
-    objectFit: 'contain',
     ...style,
   };
 
