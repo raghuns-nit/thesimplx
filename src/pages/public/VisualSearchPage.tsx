@@ -524,8 +524,14 @@ export default function VisualSearchPage() {
                                   {p.size && <span> · {p.size}</span>}
                                 </div>
                                 <div style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--primary)' }}>
-                                  ₹{p.price || 0}
-                                  <span style={{ fontSize: '0.875rem', fontWeight: 'normal', color: 'var(--text-muted)' }}> / {p.unit || 'unit'}</span>
+                                  {p.price ? (
+                                    <>
+                                      ₹{p.price}
+                                      <span style={{ fontSize: '0.875rem', fontWeight: 'normal', color: 'var(--text-muted)' }}> / {p.unit || 'unit'}</span>
+                                    </>
+                                  ) : (
+                                    <span style={{ fontSize: '0.95rem' }}>Price On Request</span>
+                                  )}
                                 </div>
                                 <p style={{ fontSize: '0.8rem', fontWeight: 600, marginTop: 'auto', paddingTop: '0.5rem', ...stockStyle(p.stock_status) }}>
                                   {p.stock_status || 'In Stock'}

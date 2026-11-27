@@ -67,6 +67,7 @@ export default function ProductDetailPage() {
 
   const upiId = settings?.upi_id;
   const companyName = settings?.company_name || 'Merchant';
+  const isPriceOnRequest = !product.price || product.price === 0;
 
   const handlePay = () => {
     if (!upiId) {
@@ -109,8 +110,14 @@ export default function ProductDetailPage() {
           {cat && <p className="text-muted" style={{ marginBottom: '1rem' }}>in {cat.name}</p>}
 
           <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '1.5rem', fontFamily: "'Sora', sans-serif" }}>
-            ₹{product.price || 0}
-            <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-muted)' }}> / {product.unit || 'unit'}</span>
+            {isPriceOnRequest ? (
+              <span style={{ fontSize: '1.5rem' }}>Price On Request</span>
+            ) : (
+              <>
+                ₹{product.price}
+                <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-muted)' }}> / {product.unit || 'unit'}</span>
+              </>
+            )}
           </div>
 
           {product.sku && (
@@ -123,7 +130,7 @@ export default function ProductDetailPage() {
             <button className="btn btn-whatsapp" style={{ flex: 1, padding: '0.75rem' }} onClick={() => openWhatsApp(product)}>
               Get Quote
             </button>
-            {upiId && (
+            {upiId && !isPriceOnRequest && (
               <button className="btn btn-accent" style={{ flex: 1, padding: '0.75rem' }} onClick={handlePay}>
                 Pay Advance
               </button>
@@ -191,7 +198,7 @@ export default function ProductDetailPage() {
           )}
 
           {/* UPI QR */}
-          {upiId && (
+          {upiId && !isPriceOnRequest && (
             <div style={{
               marginTop: '1.5rem',
               background: 'var(--bg-white)',

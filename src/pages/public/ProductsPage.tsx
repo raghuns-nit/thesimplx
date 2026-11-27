@@ -235,9 +235,15 @@ export default function ProductsPage() {
                           {p.size && <span> · {p.size}</span>}
                         </div>
                         <div style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--primary)' }}>
-                          ₹{p.price || 0}
-                          <span style={{ fontSize: '0.875rem', fontWeight: 'normal', color: 'var(--text-muted)' }}> / {p.unit || 'unit'}</span>
-                          {onSale && (
+                          {p.price ? (
+                            <>
+                              ₹{p.price}
+                              <span style={{ fontSize: '0.875rem', fontWeight: 'normal', color: 'var(--text-muted)' }}> / {p.unit || 'unit'}</span>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: '0.95rem' }}>Price On Request</span>
+                          )}
+                          {onSale && p.price && (
                             <span style={{ color: 'var(--danger)', fontSize: '0.8rem', fontWeight: 700, marginLeft: '0.5rem' }}>
                               {discount ? `-${discount}%` : 'ON SALE'}
                             </span>

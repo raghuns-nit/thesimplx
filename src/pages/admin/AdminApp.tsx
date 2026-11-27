@@ -567,7 +567,7 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
         stock_status: stockStatus,
         stock_quantity: Number(parsedStockQuantity.toFixed(2)),
         liquidate_stock: liquidateStock,
-        price: parseFloat(price) || null,
+        price: Number.isFinite(parseFloat(price)) ? parseFloat(price) : null,
         unit,
         specifications: specs,
         notes: notes.trim() || null,
@@ -680,7 +680,7 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
         <td style={{ padding: '0.75rem 1rem' }}><img src={imgs[0] || '/placeholder.png'} alt={p.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }} /></td>
         <td style={{ padding: '0.75rem 1rem' }}>{p.name}{p.brand && <><br /><small className="text-muted">{p.brand}</small></>}</td>
         <td style={{ padding: '0.75rem 1rem' }}>{cat ? cat.name : '—'}</td>
-        <td style={{ padding: '0.75rem 1rem' }}>₹{p.price || 0} <small className="text-muted">/ {p.unit || 'unit'}</small></td>
+        <td style={{ padding: '0.75rem 1rem' }}>{p.price ? <>₹{p.price} <small className="text-muted">/ {p.unit || 'unit'}</small></> : <span className="badge badge-info">Price On Request</span>}</td>
         <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>{Number(p.stock_quantity ?? 0).toFixed(2)} <small className="text-muted">{p.unit || 'Sft'}</small></td>
         <td style={{ padding: '0.75rem 1rem' }}><span className={`badge ${getStockBadge(p.stock_status)}`}>{p.stock_status || 'In Stock'}</span></td>
         <td style={{ padding: '0.75rem 1rem' }}>{isOnSale ? <span className="badge badge-danger" style={{ background: 'var(--danger)', color: '#fff' }}>ON SALE{disc ? ` -${disc}%` : ''}</span> : <span className="text-muted">—</span>}</td>
@@ -764,8 +764,8 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Price *</label>
-                    <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required min="0" step="0.01" placeholder="e.g., 45" />
+                    <label>Price * <small className="text-muted" style={{ fontWeight: 400 }}>(enter 0 for "Price On Request")</small></label>
+                    <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} required min="0" step="0.01" placeholder="e.g., 45 (0 = Price On Request)" />
                   </div>
                   <div className="form-group">
                     <label>Stock *</label>
@@ -995,7 +995,7 @@ function InventoryTab({ categories, products, settings, onRefresh, onOpenProduct
                     <td style={{ padding: '0.75rem 1rem' }}><strong>{product.name}</strong><br /><small className="text-muted">{categories.find((category) => category.id === product.category_id)?.name || '—'}</small></td>
                     <td style={{ padding: '0.75rem 1rem' }}>{product.brand || '—'}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>{product.size || '—'}</td>
-                    <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>₹{(product.price || 0).toFixed(2)}<br /><small className="text-muted">/ {product.unit || 'Sft'}</small></td>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: 700 }}>{product.price ? <>₹{product.price.toFixed(2)}<br /><small className="text-muted">/ {product.unit || 'Sft'}</small></> : <span className="badge badge-info">Price On Request</span>}</td>
                     <td style={{ padding: '0.75rem 1rem' }}><input type="number" min="0" step="0.01" value={stockInputs[product.id] ?? '0'} onChange={(e) => setStockInputs((current) => ({ ...current, [product.id]: e.target.value }))} onBlur={() => saveStock(product)} style={{ width: '92px', borderColor: isLow ? 'var(--danger)' : undefined }} /></td>
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}><button className="btn btn-outline" onClick={onOpenProducts} style={{ padding: '0.4rem 0.65rem' }}>Edit Product</button></td>
                   </tr>
