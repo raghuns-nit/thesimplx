@@ -116,6 +116,15 @@ export async function updateEnquiry(
   return true;
 }
 
+export async function setEnquiryArchived(id: string, archived: boolean): Promise<boolean> {
+  const { error } = await supabase
+    .from('enquiries')
+    .update({ archived, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) { console.error('setEnquiryArchived:', error); return false; }
+  return true;
+}
+
 // ── Activity Logs ───────────────────────────────────────────
 
 export async function loadActivityLogs(): Promise<ActivityLog[]> {

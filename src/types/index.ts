@@ -72,6 +72,7 @@ export interface Enquiry {
   comment: string | null;
   attachment_path: string | null;
   attachment_name: string | null;
+  archived: boolean;
   created_at: string;
   updated_at: string | null;
 }

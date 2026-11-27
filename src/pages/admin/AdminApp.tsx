@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useLoader } from '../../context/LoaderContext';
-import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSettings, saveSettings, insertEnquiry, updateEnquiry, logActivity, uploadImage, uploadCatalogPdf, deleteStorageImage } from '../../lib/data';
+import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSettings, saveSettings, insertEnquiry, updateEnquiry, setEnquiryArchived, logActivity, uploadImage, uploadCatalogPdf, deleteStorageImage } from '../../lib/data';
 import type { Category, Product, Enquiry, ActivityLog, Settings, AboutProfile } from '../../types';
 import {
   LayoutDashboard, FolderTree, Package, Mail, Settings as SettingsIcon, History,
   ClipboardList, LogOut, Menu, X, Plus, Pencil, Trash2, AlertTriangle, IndianRupee,
+  Archive, RotateCcw,
 } from 'lucide-react';
 import Logo from '../../components/Logo';
 
@@ -84,7 +85,7 @@ export default function AdminApp() {
     { id: 'activity', label: 'Activity Logs', icon: History },
   ];
 
-  const pendingEnquiries = enquiries.filter((e) => e.status !== 'Closed').length;
+  const pendingEnquiries = enquiries.filter((e) => e.status !== 'Closed' && !e.archived).length;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-page)' }}>
@@ -1021,6 +1022,7 @@ function EnquiriesTab({ enquiries, onRefresh }: { enquiries: Enquiry[]; onRefres
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+  const [view, setView] = useState<'active' | 'archived'>('active');
   const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
   const { show, hide } = useLoader();
 
@@ -1052,7 +1054,27 @@ function EnquiriesTab({ enquiries, onRefresh }: { enquiries: Enquiry[]; onRefres
     setShowModal(true);
   };
 
-  const filteredEnquiries = enquiries.filter((enquiry) => {
+  const handleArchive = async (e: Enquiry) => {
+    show('Archiving...');
+    const ok = await setEnquiryArchived(e.id, true);
+    if (ok) await logActivity('ARCHIVE_ENQUIRY', 'enquiry', e.id);
+    await onRefresh();
+    hide();
+  };
+
+  const handleUnarchive = async (e: Enquiry) => {
+    show('Restoring...');
+    const ok = await setEnquiryArchived(e.id, false);
+    if (ok) await logActivity('UNARCHIVE_ENQUIRY', 'enquiry', e.id);
+    await onRefresh();
+    hide();
+  };
+
+  const activeEnquiries = enquiries.filter((e) => !e.archived);
+  const archivedEnquiries = enquiries.filter((e) => e.archived);
+  const listForView = view === 'active' ? activeEnquiries : archivedEnquiries;
+
+  const filteredEnquiries = listForView.filter((enquiry) => {
     const createdDate = enquiry.created_at.slice(0, 10);
     return (!filterStatus || (enquiry.status || 'New') === filterStatus)
       && (!filterDateFrom || createdDate >= filterDateFrom)
@@ -1070,66 +1092,100 @@ function EnquiriesTab({ enquiries, onRefresh }: { enquiries: Enquiry[]; onRefres
     hide();
   };
 
+  const renderTable = (rows: Enquiry[], isArchived: boolean) => (
+    <div style={{ overflowX: 'auto', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
+        <thead>
+          <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-light)' }}>
+            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Date</th>
+            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Customer</th>
+            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Phone</th>
+            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Message</th>
+            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Notes</th>
+            <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Status</th>
+            <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((e) => (
+            <tr key={e.id} style={{ borderBottom: '1px solid var(--border)', opacity: isArchived ? 0.7 : 1 }}>
+              <td style={{ padding: '0.75rem 1rem' }}><small>{new Date(e.created_at).toLocaleString()}</small></td>
+              <td style={{ padding: '0.75rem 1rem' }}>
+                <strong>{e.name}</strong><br />
+                <small className="text-muted">Assigned: <span style={{ color: 'var(--primary)' }}>{e.assignee || 'Unassigned'}</span></small>
+              </td>
+              <td style={{ padding: '0.75rem 1rem' }}>{e.phone}<br /><small>{e.email || '—'}</small></td>
+              <td style={{ padding: '0.75rem 1rem', maxWidth: '240px', whiteSpace: 'pre-wrap' }}>
+                {e.message}
+                {e.attachment_path && attachmentUrls[e.id] && (
+                  <a
+                    href={attachmentUrls[e.id]}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: 'block', marginTop: '0.5rem', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600 }}
+                  >
+                    View attached image{e.attachment_name ? `: ${e.attachment_name}` : ''}
+                  </a>
+                )}
+              </td>
+              <td style={{ padding: '0.75rem 1rem', maxWidth: '180px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{e.comment || ''}</td>
+              <td style={{ padding: '0.75rem 1rem' }}>
+                <span className={`badge ${e.status === 'Closed' ? 'badge-success' : e.status === 'Assigned' ? 'badge-warning' : 'badge-info'}`}>
+                  {e.status || 'New'}
+                </span>
+              </td>
+              <td style={{ padding: '0.75rem 1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', marginRight: '0.4rem' }} onClick={() => openModal(e)}>Update</button>
+                {isArchived ? (
+                  <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', color: 'var(--success)' }} onClick={() => handleUnarchive(e)} title="Restore to active"><RotateCcw size={14} /></button>
+                ) : (
+                  <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', color: 'var(--text-muted)' }} onClick={() => handleArchive(e)} title="Archive"><Archive size={14} /></button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="fade-in">
+      {/* View toggle: Active vs Archived */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        <button
+          className={`btn ${view === 'active' ? 'btn-primary' : 'btn-outline'}`}
+          style={{ padding: '0.5rem 1rem' }}
+          onClick={() => setView('active')}
+        >
+          Active ({activeEnquiries.length})
+        </button>
+        <button
+          className={`btn ${view === 'archived' ? 'btn-primary' : 'btn-outline'}`}
+          style={{ padding: '0.5rem 1rem' }}
+          onClick={() => setView('archived')}
+        >
+          <Archive size={15} style={{ verticalAlign: 'middle', marginRight: '0.35rem' }} />
+          Archived ({archivedEnquiries.length})
+        </button>
+      </div>
+
+      {/* Filters */}
       <div style={{ display: 'flex', alignItems: 'end', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', padding: '1rem', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
         <div className="form-group" style={{ margin: 0 }}><label>Status</label><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}><option value="">All statuses</option><option value="New">New</option><option value="Assigned">Assigned</option><option value="Closed">Closed</option></select></div>
         <div className="form-group" style={{ margin: 0 }}><label>From date</label><input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} /></div>
         <div className="form-group" style={{ margin: 0 }}><label>To date</label><input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} /></div>
         <button type="button" className="btn btn-outline" onClick={() => { setFilterStatus(''); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear Filters</button>
       </div>
+
       {filteredEnquiries.length === 0 ? (
-        <div className="text-center text-muted" style={{ padding: '3rem' }}>{enquiries.length === 0 ? 'No enquiries yet.' : 'No enquiries match these filters.'}</div>
-      ) : (
-        <div style={{ overflowX: 'auto', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-light)' }}>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Date</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Customer</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Phone</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Message</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Notes</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Status</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEnquiries.map((e) => (
-                <tr key={e.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '0.75rem 1rem' }}><small>{new Date(e.created_at).toLocaleString()}</small></td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <strong>{e.name}</strong><br />
-                    <small className="text-muted">Assigned: <span style={{ color: 'var(--primary)' }}>{e.assignee || 'Unassigned'}</span></small>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{e.phone}<br /><small>{e.email || '—'}</small></td>
-                  <td style={{ padding: '0.75rem 1rem', maxWidth: '240px', whiteSpace: 'pre-wrap' }}>
-                    {e.message}
-                    {e.attachment_path && attachmentUrls[e.id] && (
-                      <a
-                        href={attachmentUrls[e.id]}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ display: 'block', marginTop: '0.5rem', color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 600 }}
-                      >
-                        View attached image{e.attachment_name ? `: ${e.attachment_name}` : ''}
-                      </a>
-                    )}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', maxWidth: '180px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{e.comment || ''}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span className={`badge ${e.status === 'Closed' ? 'badge-success' : e.status === 'Assigned' ? 'badge-warning' : 'badge-info'}`}>
-                      {e.status || 'New'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                    <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem' }} onClick={() => openModal(e)}>Update</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="text-center text-muted" style={{ padding: '3rem' }}>
+          {listForView.length === 0
+            ? (view === 'active' ? 'No active enquiries.' : 'No archived enquiries.')
+            : 'No enquiries match these filters.'}
         </div>
+      ) : (
+        renderTable(filteredEnquiries, view === 'archived')
       )}
 
       {showModal && editing && (
