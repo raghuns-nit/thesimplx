@@ -74,7 +74,7 @@ export default function BrandsPage() {
                 <img
                   src={brand.image_url || '/placeholder.png'}
                   alt={brand.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '1.25rem', boxSizing: 'border-box', transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)' }}
                   onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
                   onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
