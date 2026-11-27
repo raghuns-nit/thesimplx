@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { Phone, MessageCircle, MapPin, ChevronDown, Home } from 'lucide-react';
+import Logo from './Logo';
 
 interface HeaderProps {
   onOpenWhatsApp: () => void;
@@ -50,7 +51,7 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
       <div style={{ padding: '0.75rem 0' }}>
         <div className="container header-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0, overflow: 'visible' }}>
           <Link to="/" className="logo-container" style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/logo.svg" alt="Simplx World" style={{ width: '176px', height: 'auto', maxHeight: '44px', objectFit: 'contain' }} />
+            <Logo width={176} alt="Simplx World" shimmer style={{ maxHeight: '44px' }} />
           </Link>
           <nav ref={navRef} style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }} className="header-nav" onClick={(event) => event.stopPropagation()}>
             <Link to="/" className="nav-group-summary" style={{ color: location.pathname === '/' ? 'var(--accent)' : 'var(--text-muted)', display: 'inline-flex', textDecoration: 'none' }} onClick={() => setOpenGroup(null)}>

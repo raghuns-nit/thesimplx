@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useLoader } from '../../context/LoaderContext';
 import { Lock, Mail } from 'lucide-react';
+import Logo from '../../components/Logo';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -57,7 +58,7 @@ export default function AdminLogin() {
         boxShadow: 'var(--shadow-lg)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <img src="/logo.svg" alt="Simplx World" style={{ width: '200px', height: 'auto', margin: '0 auto 1rem' }} />
+          <Logo width={200} alt="Simplx World" style={{ margin: '0 auto 1rem' }} />
           <h2 style={{ fontSize: '1.25rem' }}>Admin Portal</h2>
           <p className="text-muted" style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>Sign in to manage your catalog</p>
         </div>

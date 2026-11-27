@@ -251,6 +251,32 @@ textarea { resize: vertical; min-height: 100px; }
   100% { background-position: 200% 0; }
 }
 
+/* ── Logo shimmer (bolt.new-style sweep) ── */
+.logo-shimmer {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+.logo-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmerSweep 3s ease-in-out infinite;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+@keyframes shimmerSweep {
+  0% { background-position: -150% 0; }
+  60%, 100% { background-position: 150% 0; }
+}
+
 /* ── Modal ── */
 .modal-overlay {
   position: fixed;

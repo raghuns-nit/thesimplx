@@ -55,6 +55,7 @@ export interface Settings {
   hero_description: string | null;
   about_history: string | null;
   about_profiles: AboutProfile[] | null;
+  logo_url: string | null;
   product_colour_options: string[] | null;
   updated_at: string | null;
 }

@@ -8,6 +8,7 @@ import {
   LayoutDashboard, FolderTree, Package, Mail, Settings as SettingsIcon, History,
   ClipboardList, LogOut, Menu, X, Plus, Pencil, Trash2, AlertTriangle, IndianRupee,
 } from 'lucide-react';
+import Logo from '../../components/Logo';
 
 type Tab = 'dashboard' | 'categories' | 'products' | 'inventory' | 'enquiries' | 'settings' | 'activity';
 type ProfileDraft = AboutProfile & { file: File | null };
@@ -102,7 +103,7 @@ export default function AdminApp() {
     transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
       }}>
         <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <img src="/logo.svg" alt="Simplx World" style={{ width: '140px', height: 'auto', filter: 'brightness(0) invert(1)' }} />
+          <Logo width={140} alt="Simplx World" variant="light" />
         </div>
         <nav style={{ flex: 1, padding: '1rem 0' }}>
           {navItems.map((item) => (
@@ -1141,6 +1142,9 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
   const [aboutHistory, setAboutHistory] = useState('');
   const [colourOptions, setColourOptions] = useState<string[]>(defaultColourOptions);
   const [newColour, setNewColour] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [removeLogo, setRemoveLogo] = useState(false);
   const [profiles, setProfiles] = useState<ProfileDraft[]>([]);
   const { show, hide } = useLoader();
 
@@ -1166,6 +1170,9 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
       setHeroDescription(settings.hero_description || '');
       setAboutHistory(settings.about_history || '');
       setColourOptions(settings.product_colour_options?.filter((value) => value.trim()) || defaultColourOptions);
+      setLogoUrl(settings.logo_url || null);
+      setLogoFile(null);
+      setRemoveLogo(false);
       setProfiles((settings.about_profiles || []).slice(0, 4).map((profile) => ({
         name: profile.name || '',
         role: profile.role || '',
@@ -1188,6 +1195,19 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
       return;
     }
     show('Saving settings...');
+    let savedLogoUrl = logoUrl;
+    if (logoFile) {
+      const extension = logoFile.name.split('.').pop() || 'png';
+      const uploadedUrl = await uploadImage(logoFile, 'branding', `logo.${extension}`);
+      if (!uploadedUrl) {
+        alert('Could not upload logo image.');
+        hide();
+        return;
+      }
+      savedLogoUrl = uploadedUrl;
+    } else if (removeLogo) {
+      savedLogoUrl = null;
+    }
     const savedProfiles: AboutProfile[] = [];
     for (let index = 0; index < profiles.length; index += 1) {
       const profile = profiles[index];
@@ -1212,6 +1232,7 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
       about_history: aboutHistory.trim(),
       about_profiles: savedProfiles,
       product_colour_options: colourOptions.map((value) => value.trim()).filter(Boolean),
+      logo_url: savedLogoUrl,
       visual_search_threshold: Number(visualForm.threshold.toFixed(2)),
       visual_search_max_results: Math.round(visualForm.maxResults),
       visual_search_color_weight: Number(visualForm.colorWeight.toFixed(2)),
@@ -1247,7 +1268,25 @@ function SettingsTab({ settings, onRefresh }: { settings: Settings | null; onRef
         borderRadius: 'var(--radius)',
         padding: '2rem',
       }}>
-        {fields.map((f) => (
+        <div className="form-group">
+          <label>Company Name</label>
+          <input type="text" value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} placeholder="Simplx World" />
+        </div>
+        <div className="form-group">
+          <label>Company Logo</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+            {(logoUrl || '/logo.svg') && (
+              <img src={removeLogo ? '/logo.svg' : (logoUrl || '/logo.svg')} alt="Current logo" style={{ width: '120px', height: 'auto', maxHeight: '48px', objectFit: 'contain', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '0.35rem', background: 'var(--bg-light)' }} />
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <input type="file" accept="image/*" onChange={(e) => { setLogoFile(e.target.files?.[0] || null); setRemoveLogo(false); }} style={{ maxWidth: '260px' }} />
+              {logoUrl && !logoFile && !removeLogo && <button type="button" className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--danger)' }} onClick={() => setRemoveLogo(true)}>Remove current logo</button>}
+              {removeLogo && !logoFile && <button type="button" className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={() => setRemoveLogo(false)}>Undo removal</button>}
+            </div>
+          </div>
+          <small className="text-muted">Upload a logo to replace the default. The logo appears in the site header with a shimmer effect, and in the footer and admin screens. When removed, the default logo is used.</small>
+        </div>
+        {fields.filter((f) => f.key !== 'company_name').map((f) => (
           <div className="form-group" key={f.key}>
             <label>{f.label}</label>
             <input

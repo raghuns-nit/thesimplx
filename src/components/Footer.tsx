@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
 import { Phone, MessageCircle, MapPin } from 'lucide-react';
+import Logo from './Logo';
 
 export default function Footer() {
   const { settings } = useSettings();
@@ -11,7 +12,7 @@ export default function Footer() {
       <div className="container" style={{ padding: '3rem 1.5rem 2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
           <div>
-            <img src="/logo.svg" alt={companyName} style={{ width: '190px', height: 'auto', marginBottom: '0.75rem', filter: 'brightness(0) invert(1)' }} />
+            <Logo width={190} alt={companyName} variant="light" style={{ marginBottom: '0.75rem' }} />
             <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
               Premium construction materials and services tailored for your building needs.
             </p>
