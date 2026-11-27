@@ -88,7 +88,7 @@ export default function BrandProductsPage() {
           <img
             src={brand.image_url}
             alt={brand.name}
-            style={{ width: '96px', height: '96px', objectFit: 'cover', borderRadius: 'var(--radius)', flexShrink: 0 }}
+            style={{ width: '96px', height: '96px', objectFit: 'contain', padding: '0.5rem', boxSizing: 'border-box', borderRadius: 'var(--radius)', flexShrink: 0 }}
             onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
           />
         )}
