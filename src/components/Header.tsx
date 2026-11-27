@@ -31,6 +31,7 @@ export default function Header({ onOpenWhatsApp }: HeaderProps) {
 
   const navGroups = [
     { label: 'Categories', items: [{ to: '/products', label: 'All Products' }] },
+    { label: 'Brands', items: [{ to: '/brands', label: 'All Brands' }] },
     { label: 'Tools', items: [{ to: '/estimator', label: 'Estimator' }, { to: '/visual-search', label: 'Visual Search' }] },
     { label: 'About Us', items: [{ to: '/we-are', label: 'We Are' }, { to: '/contact', label: 'Contact Us' }] },
   ];

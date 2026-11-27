@@ -8,6 +8,17 @@ export interface Category {
   product_count?: number;
 }
 
+export interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  url: string | null;
+  image_url: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface Product {
   id: string;
   name: string;

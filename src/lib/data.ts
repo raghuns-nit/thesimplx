@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Category, Product, Settings, Enquiry, ActivityLog } from '../types';
+import type { Category, Product, Settings, Enquiry, ActivityLog, Brand } from '../types';
 
 // ── Categories ──────────────────────────────────────────────
 
@@ -25,6 +25,37 @@ export async function loadCategories(): Promise<Category[]> {
     ...c,
     product_count: counts[c.id] || 0,
   }));
+}
+
+// ── Brands ─────────────────────────────────────────────────
+
+export async function loadBrands(): Promise<Brand[]> {
+  const { data, error } = await supabase
+    .from('brands')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) { console.error('loadBrands:', error); return []; }
+  return data || [];
+}
+
+export async function loadBrandBySlug(slug: string): Promise<Brand | null> {
+  const { data, error } = await supabase
+    .from('brands')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) { console.error('loadBrandBySlug:', error); return null; }
+  return data;
+}
+
+export async function loadProductsByBrandName(brandName: string): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .ilike('brand', brandName)
+    .order('sort_order', { ascending: true });
+  if (error) { console.error('loadProductsByBrandName:', error); return []; }
+  return data || [];
 }
 
 // ── Products ────────────────────────────────────────────────

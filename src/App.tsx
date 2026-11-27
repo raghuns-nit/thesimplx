@@ -4,6 +4,8 @@ import { LoaderProvider } from './context/LoaderContext';
 import PublicLayout from './components/PublicLayout';
 import HomePage from './pages/public/HomePage';
 import ProductsPage from './pages/public/ProductsPage';
+import BrandsPage from './pages/public/BrandsPage';
+import BrandProductsPage from './pages/public/BrandProductsPage';
 import ProductDetailPage from './pages/public/ProductDetailPage';
 import ContactPage from './pages/public/ContactPage';
 import EstimatorPage from './pages/public/EstimatorPage';
@@ -20,6 +22,8 @@ export default function App() {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/brands" element={<BrandsPage />} />
+            <Route path="/brand/:slug" element={<BrandProductsPage />} />
             <Route path="/product/:id" element={<ProductDetailPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/estimator" element={<EstimatorPage />} />

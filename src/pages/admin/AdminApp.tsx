@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useLoader } from '../../context/LoaderContext';
-import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSettings, saveSettings, insertEnquiry, updateEnquiry, setEnquiryArchived, logActivity, uploadImage, uploadCatalogPdf, deleteStorageImage } from '../../lib/data';
-import type { Category, Product, Enquiry, ActivityLog, Settings, AboutProfile } from '../../types';
+import { loadCategories, loadProducts, loadEnquiries, loadActivityLogs, loadSettings, loadBrands, saveSettings, insertEnquiry, updateEnquiry, setEnquiryArchived, logActivity, uploadImage, uploadCatalogPdf, deleteStorageImage } from '../../lib/data';
+import type { Category, Product, Enquiry, ActivityLog, Settings, AboutProfile, Brand } from '../../types';
 import {
   LayoutDashboard, FolderTree, Package, Mail, Settings as SettingsIcon, History,
   ClipboardList, LogOut, Menu, X, Plus, Pencil, Trash2, AlertTriangle, IndianRupee,
-  Archive, RotateCcw,
+  Archive, RotateCcw, Tag,
 } from 'lucide-react';
 import Logo from '../../components/Logo';
 
-type Tab = 'dashboard' | 'categories' | 'products' | 'inventory' | 'enquiries' | 'settings' | 'activity';
+type Tab = 'dashboard' | 'categories' | 'brands' | 'products' | 'inventory' | 'enquiries' | 'settings' | 'activity';
 type ProfileDraft = AboutProfile & { file: File | null };
 
 const defaultColourOptions = ['Black', 'Blue', 'Red', 'Yellow', 'Green', 'White', 'Cream'];
@@ -26,6 +26,7 @@ export default function AdminApp() {
 
   // Data
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -51,14 +52,16 @@ export default function AdminApp() {
 
   const refreshAll = async () => {
     show('Loading...');
-    const [cats, prods, enqs, logsData, setts] = await Promise.all([
+    const [cats, brnds, prods, enqs, logsData, setts] = await Promise.all([
       loadCategories(),
+      loadBrands(),
       loadProducts(),
       loadEnquiries(),
       loadActivityLogs(),
       loadSettings(),
     ]);
     setCategories(cats);
+    setBrands(brnds);
     setProducts(prods);
     setEnquiries(enqs);
     setLogs(logsData);
@@ -78,6 +81,7 @@ export default function AdminApp() {
   const navItems: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'categories', label: 'Categories', icon: FolderTree },
+    { id: 'brands', label: 'Brands', icon: Tag },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'inventory', label: 'Inventory Management', icon: ClipboardList },
     { id: 'enquiries', label: 'Enquiries', icon: Mail },
@@ -194,7 +198,8 @@ export default function AdminApp() {
         <div style={{ flex: 1, padding: '2rem 1.5rem', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
           {tab === 'dashboard' && <DashboardTab categories={categories} products={products} enquiries={enquiries} logs={logs} onNavigate={setTab} />}
           {tab === 'categories' && <CategoriesTab categories={categories} products={products} onRefresh={refreshAll} />}
-          {tab === 'products' && <ProductsTab categories={categories} products={products} settings={settings} onRefresh={refreshAll} />}
+          {tab === 'brands' && <BrandsTab brands={brands} products={products} onRefresh={refreshAll} />}
+          {tab === 'products' && <ProductsTab categories={categories} brands={brands} products={products} settings={settings} onRefresh={refreshAll} />}
           {tab === 'inventory' && <InventoryTab categories={categories} products={products} settings={settings} onRefresh={refreshAll} onOpenProducts={() => setTab('products')} />} 
           {tab === 'enquiries' && <EnquiriesTab enquiries={enquiries} onRefresh={refreshAll} />}
           {tab === 'settings' && <SettingsTab settings={settings} onRefresh={refreshAll} />}
@@ -462,9 +467,190 @@ function CategoriesTab({ categories, onRefresh }: { categories: Category[]; prod
   );
 }
 
+// ── Brands Tab ─────────────────────────────────────────────
+
+function BrandsTab({ brands, products, onRefresh }: { brands: Brand[]; products: Product[]; onRefresh: () => Promise<void> }) {
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Brand | null>(null);
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [desc, setDesc] = useState('');
+  const [image, setImage] = useState<File | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const { show, hide } = useLoader();
+
+  const makeSlug = (n: string) => n.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
+
+  const openAdd = () => {
+    setEditing(null);
+    setName(''); setUrl(''); setDesc('');
+    setImage(null); setRemoveImage(false);
+    setShowModal(true);
+  };
+
+  const openEdit = (b: Brand) => {
+    setEditing(b);
+    setName(b.name); setUrl(b.url || ''); setDesc(b.description || '');
+    setImage(null); setRemoveImage(false);
+    setShowModal(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const slug = makeSlug(name);
+    if (!slug) { alert('Please enter a valid brand name.'); return; }
+
+    show('Saving brand...');
+    try {
+      if (editing) {
+        const updates: Record<string, unknown> = { name: name.trim(), slug, url: url.trim() || null, description: desc.trim() || null };
+        if (image) {
+          const imageUrl = await uploadImage(image, 'brands', `${slug}.jpg`);
+          if (imageUrl) updates.image_url = imageUrl;
+        } else if (removeImage && editing.image_url) {
+          await deleteStorageImage(editing.image_url);
+          updates.image_url = null;
+        }
+        const { error } = await supabase.from('brands').update(updates).eq('id', editing.id);
+        if (error) throw error;
+        await logActivity('UPDATE_BRAND', 'brand', editing.id);
+      } else {
+        let imageUrl: string | null = null;
+        if (image) {
+          imageUrl = await uploadImage(image, 'brands', `${slug}.jpg`);
+        }
+        const { data: newBrand, error } = await supabase.from('brands').insert({
+          name: name.trim(), slug, url: url.trim() || null, description: desc.trim() || null,
+          image_url: imageUrl, sort_order: brands.length,
+        }).select().single();
+        if (error) throw error;
+        await logActivity('CREATE_BRAND', 'brand', newBrand.id);
+      }
+      setShowModal(false);
+      await onRefresh();
+    } catch (err) {
+      console.error(err);
+      alert('Error saving brand.');
+    } finally {
+      hide();
+    }
+  };
+
+  const handleDelete = async (id: string, brandName: string) => {
+    const count = products.filter((p) => p.brand?.toLowerCase() === brandName.toLowerCase()).length;
+    const msg = count > 0
+      ? `Delete "${brandName}"?\n\nThis brand has ${count} product(s) using it. Those products will keep their brand text but the brand entry will be removed.`
+      : `Delete "${brandName}"?\n\nThis will permanently remove the brand entry.`;
+    if (!confirm(msg)) return;
+    show('Deleting...');
+    const { error } = await supabase.from('brands').delete().eq('id', id);
+    if (error) { alert('Error deleting brand.'); }
+    else await logActivity('DELETE_BRAND', 'brand', id);
+    await onRefresh();
+  };
+
+  const productCount = (brandName: string) =>
+    products.filter((p) => p.brand?.toLowerCase() === brandName.toLowerCase()).length;
+
+  return (
+    <div className="fade-in">
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <p className="text-muted">{brands.length} brands</p>
+        <button className="btn btn-primary" onClick={openAdd}><Plus size={18} /> Add Brand</button>
+      </div>
+
+      <div style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid var(--border)', background: 'var(--bg-light)' }}>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Image</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Name</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Slug</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>URL</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Products</th>
+              <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {brands.length === 0 ? (
+              <tr><td colSpan={6} className="text-center text-muted" style={{ padding: '2rem' }}>No brands yet.</td></tr>
+            ) : brands.map((b) => (
+              <tr key={b.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: '0.75rem 1rem' }}>
+                  <img src={b.image_url || '/placeholder.png'} alt={b.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }} />
+                </td>
+                <td style={{ padding: '0.75rem 1rem' }}>
+                  <strong>{b.name}</strong>
+                  {b.description && <><br /><small className="text-muted">{b.description}</small></>}
+                </td>
+                <td style={{ padding: '0.75rem 1rem' }}>
+                  <span className="badge badge-warning" style={{ fontFamily: 'monospace' }}>{b.slug}</span>
+                </td>
+                <td style={{ padding: '0.75rem 1rem' }}>
+                  {b.url ? <a href={b.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontSize: '0.85rem' }}>Visit ↗</a> : <span className="text-muted">—</span>}
+                </td>
+                <td style={{ padding: '0.75rem 1rem' }}>{productCount(b.name)}</td>
+                <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                  <button className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', marginRight: '0.5rem' }} onClick={() => openEdit(b)}><Pencil size={14} /></button>
+                  <button className="btn btn-danger" style={{ padding: '0.25rem 0.5rem' }} onClick={() => handleDelete(b.id, b.name)}><Trash2 size={14} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showModal && (
+        <div className="modal-overlay active" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{editing ? 'Edit Brand' : 'Add Brand'}</h3>
+              <button className="btn-close" onClick={() => setShowModal(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleSave}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Name *</label>
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label>Website URL</label>
+                  <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" />
+                </div>
+                <div className="form-group">
+                  <label>Description</label>
+                  <textarea value={desc} onChange={(e) => setDesc(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Display Image {editing ? '(optional — leave empty to keep existing)' : '(optional)'}</label>
+                  <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] || null)} />
+                  {editing && editing.image_url && !image && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <img src={editing.image_url} alt="Brand" style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }} />
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--danger)', cursor: 'pointer', margin: 0 }}>
+                        <input type="checkbox" checked={removeImage} onChange={(e) => setRemoveImage(e.target.checked)} style={{ width: '16px', height: '16px' }} />
+                        Remove current image
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Products Tab ───────────────────────────────────────────
 
-function ProductsTab({ categories, products, settings, onRefresh }: { categories: Category[]; products: Product[]; settings: Settings | null; onRefresh: () => Promise<void> }) {
+function ProductsTab({ categories, brands, products, settings, onRefresh }: { categories: Category[]; brands: Brand[]; products: Product[]; settings: Settings | null; onRefresh: () => Promise<void> }) {
   const colourOptions = settings?.product_colour_options?.filter((value) => value.trim()) || defaultColourOptions;
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -746,7 +932,11 @@ function ProductsTab({ categories, products, settings, onRefresh }: { categories
                   </div>
                   <div className="form-group">
                     <label>Brand</label>
-                    <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} />
+                    <select value={brands.some((b) => b.name === brand) ? brand : ''} onChange={(e) => setBrand(e.target.value)} style={{ marginBottom: '0.5rem' }}>
+                      <option value="">Select a brand (or type below)</option>
+                      {brands.map((b) => <option key={b.id} value={b.name}>{b.name}</option>)}
+                    </select>
+                    <input type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Type a brand (or pick above)" />
                   </div>
                   <div className="form-group">
                     <label>Size</label>
