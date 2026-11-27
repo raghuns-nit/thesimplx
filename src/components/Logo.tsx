@@ -13,7 +13,8 @@ export default function Logo({ width = 176, alt = 'Simplx World', variant = 'def
   const src = settings?.logo_url || '/logo.svg';
 
   const baseStyle: React.CSSProperties = {
-    width: `${width}px`,
+    maxWidth: `${width}px`,
+    width: 'auto',
     height: 'auto',
     objectFit: 'contain',
     ...style,
