@@ -95,7 +95,7 @@ export default function ProductDetailPage() {
       </Link>
 
       <div className="product-detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
-        <DetailImage images={images} activeImg={activeImg} setActiveImg={setActiveImg} name={product.name} />
+        <DetailImage images={images} catalogUrl={product.catalog_url} activeImg={activeImg} setActiveImg={setActiveImg} name={product.name} />
 
         {/* Details */}
         <div>
@@ -270,58 +270,121 @@ export default function ProductDetailPage() {
   );
 }
 
-function Thumbnail({ src, alt, active, onClick }: { src: string; alt: string; active: boolean; onClick: () => void }) {
+function Thumbnail({ src, alt, active, onClick, catalog }: { src: string; alt: string; active: boolean; onClick: () => void; catalog?: boolean }) {
   const bg = useContrastBg(src);
   return (
-    <img
-      src={src}
-      alt={alt}
+    <div
       onClick={onClick}
       style={{
+        position: 'relative',
         width: '80px',
         height: '80px',
-        objectFit: 'contain',
-        padding: '0.25rem',
-        background: bg,
         cursor: 'pointer',
         borderRadius: 'var(--radius-sm)',
         border: active ? '2px solid var(--accent)' : '2px solid var(--border)',
+        overflow: 'hidden',
         transition: 'border-color 0.2s, transform 0.2s',
       }}
       onMouseEnter={(e) => { if (!active) e.currentTarget.style.transform = 'scale(1.05)'; }}
       onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-    />
+    >
+      {catalog ? (
+        <CatalogThumbnail url={src} alt={alt} width={80} />
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.25rem', background: bg }}
+        />
+      )}
+      {catalog && (
+        <span style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          background: 'rgba(0,0,0,0.65)', color: '#fff',
+          fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: '0.04em', textAlign: 'center', padding: '0.1rem 0',
+        }}>
+          Catalog
+        </span>
+      )}
+    </div>
   );
 }
 
-function DetailImage({ images, activeImg, setActiveImg, name }: { images: string[]; activeImg: number; setActiveImg: (i: number) => void; name: string }) {
-  const mainSrc = images[activeImg] || '/placeholder.png';
+interface GalleryItem {
+  kind: 'image' | 'catalog';
+  src: string;
+}
+
+function DetailImage({ images, catalogUrl, activeImg, setActiveImg, name }: { images: string[]; catalogUrl: string | null; activeImg: number; setActiveImg: (i: number) => void; name: string }) {
+  const gallery: GalleryItem[] = [
+    ...(catalogUrl ? [{ kind: 'catalog' as const, src: catalogUrl }] : []),
+    ...images.map((src) => ({ kind: 'image' as const, src })),
+  ];
+
+  const active = gallery[activeImg];
+  const mainSrc = active?.kind === 'image' ? active.src : '';
   const bg = useContrastBg(mainSrc);
+
+  const handleMainClick = () => {
+    if (active?.kind === 'catalog') {
+      window.open(active.src, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div>
-      <div style={{
-        borderRadius: 'var(--radius)',
-        overflow: 'hidden',
-        border: '1px solid var(--border)',
-        background: bg,
-        aspectRatio: '1',
-        boxShadow: 'var(--shadow-card)',
-      }}>
-        <img
-          src={mainSrc}
-          alt={name}
-          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.75rem' }}
-          onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
-        />
+      <div
+        onClick={handleMainClick}
+        style={{
+          borderRadius: 'var(--radius)',
+          overflow: 'hidden',
+          border: '1px solid var(--border)',
+          background: bg,
+          aspectRatio: '1',
+          boxShadow: 'var(--shadow-card)',
+          position: 'relative',
+          cursor: active?.kind === 'catalog' ? 'pointer' : 'default',
+        }}
+      >
+        {active?.kind === 'catalog' ? (
+          <>
+            <CatalogThumbnail url={active.src} alt={`${name} catalog`} width={480} />
+            <span style={{
+              position: 'absolute', top: '0.75rem', left: '0.75rem',
+              background: 'var(--danger)', color: '#fff',
+              fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.04em', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)',
+            }}>
+              Catalog
+            </span>
+            <span style={{
+              position: 'absolute', bottom: '0.75rem', right: '0.75rem',
+              background: 'rgba(0,0,0,0.65)', color: '#fff',
+              fontSize: '0.75rem', fontWeight: 600, padding: '0.3rem 0.6rem',
+              borderRadius: 'var(--radius-sm)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+            }}>
+              <ExternalLink size={13} /> Open
+            </span>
+          </>
+        ) : (
+          <img
+            src={active?.src || '/placeholder.png'}
+            alt={name}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '0.75rem' }}
+            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.png'; }}
+          />
+        )}
       </div>
-      {images.length > 1 && (
+      {gallery.length > 1 && (
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-          {images.map((img, i) => (
+          {gallery.map((item, i) => (
             <Thumbnail
               key={i}
-              src={img}
-              alt={`${name} ${i + 1}`}
+              src={item.src}
+              alt={item.kind === 'catalog' ? `${name} catalog` : `${name} ${i}`}
               active={activeImg === i}
+              catalog={item.kind === 'catalog'}
               onClick={() => setActiveImg(i)}
             />
           ))}
